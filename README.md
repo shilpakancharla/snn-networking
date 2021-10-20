@@ -78,18 +78,3 @@ For each src-dst pair, if there is a link between them, it contains the outgoing
 6. Average port occupancy (service and waiting queue) of the first queue of the outgoing port.
 7. Maximum queue occupancy of the first queue of the outgoing port.
 8. Average packet length of the packets transmitted through the first queue of the outgoing port.
-
-## Using `datanetAPI.py`
-From https://github.com/BNN-UPC/datanetAPI/tree/challenge2021, download the `datanetAPI.py`. Use the following code snipped to initialize an iterator object of the API and obtain sequential samples from the dataset:
-
-````
-    import datanetAPI
-    reader = datanetAPI.DatanetAPI(<path_to_datset>, [<Intensity_Range>], [<Topology_Size>], [shuffle])
-    it = iter(reader)
-    for sample in it:
-        <process sample code>
-````
-* `path_to_dataset` should point to the root directory of the dataset to be processed. If more than one dataset is found in the root directory, all of them are processed. The dataset should be uncompressed in advance. 
-* `Intensity_Range` is a Python list of integers that enable to filter only samples within a traffic intensity range. The user can specify a single value (if a specific intensity is desired) or a list with two values (considered the upper and lower bounds of a range of intensities desired, e.g. `[800 1200]`). If not specified or is set as an empty array, the iterator object with 
-* `Topology_Size` is a Python list of integers that enables to filter only samples with a specific topology size. The user can specify a list of integers corresponding to the topology sizes needing to be processed. By default, all topology sizes are used. 
-* `shuffle` is a Boolean that by default is `false` and indicates if the sample files should be shuffled before being processed. 

@@ -2,15 +2,18 @@ import os
 import tarfile 
 import networkx
 import numpy as np 
-import pandas as pd 
-# Custom functions
-import datanetAPI
+from torch.utils.data import Dataset, DataLoader
+from datanetAPI import DatanetAPI
 
-class ToplogyInput:
-    def __init__(self, input_file, traffic_filepath, link_filepath, sim_filepath):
-        self.max_avg_lambda_list, self.traffic_measurements = self.get_traffic_metrics(traffic_filepath)
-        self.global_packets_list, self.global_losses_list, self.global_delay_list, self.metrics_list = self.get_simulation_metrics(sim_filepath)
-        self.port_statistics_list = self.get_link_usage_metrics(link_filepath)
+class NetworkInput:
+    def __init__(self, input_filepath, traffic_filepath, link_filepath, sim_filepath):
+        self.input_filepath = input_filepath
+        self.traffic_filepath = traffic_filepath
+        self.link_filepath = link_filepath
+        self.sim_filepath = sim_filepath
+        self.max_avg_lambda_list, self.traffic_measurements = self.get_traffic_metrics(self.traffic_filepath)
+        self.global_packets_list, self.global_losses_list, self.global_delay_list, self.metrics_list = self.get_simulation_metrics(self.sim_filepath)
+        self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
     
     """
         Return the traffic metrics as a dictionary with the maximum average lambda value as the key and the
@@ -293,9 +296,8 @@ def extract_all_in_filepath(main_filepath):
             print("Unzipped " + str(extraction_progress) + " out of " + str(files_length) + " files.")
 
 # Driver code
-TRAINING_PATH = 'training_data/gnnet-ch21-dataset-train/'
-VALIDATION_PATH = 'validation_data/gnnet-ch21-dataset-validation/'
-reader = datanetAPI.DatanetAPI(data_folder = TRAINING_PATH, intensity_values = [], topology_sizes = [], shuffle = False)
-it = iter(reader)
-for sample in it:
-    print(sample)
+INPUT_FILE = 'training_data\gnnet-ch21-dataset-train\25\results_25_400-2000_0_24\results_25_400-2000_0_24\input_files.txt'
+TRAFFIC_FILE = 'training_data\gnnet-ch21-dataset-train\25\results_25_400-2000_0_24\results_25_400-2000_0_24\traffic.txt'
+LINK_FILE = 'training_data\gnnet-ch21-dataset-train\25\results_25_400-2000_0_24\results_25_400-2000_0_24\linkUsage.txt'
+SIM_FILE = 'training_data\gnnet-ch21-dataset-train\25\results_25_400-2000_0_24\results_25_400-2000_0_24\simulationResults.txt'
+dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, SIM_FILE)
