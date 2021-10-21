@@ -3,7 +3,6 @@ import tarfile
 import networkx
 import numpy as np 
 from torch.utils.data import Dataset, DataLoader
-from datanetAPI import DatanetAPI
 
 class NetworkInput:
     def __init__(self, input_filepath, traffic_filepath, link_filepath, sim_filepath):
@@ -11,6 +10,8 @@ class NetworkInput:
         self.traffic_filepath = traffic_filepath
         self.link_filepath = link_filepath
         self.sim_filepath = sim_filepath
+        
+        # Data collection
         self.max_avg_lambda_list, self.traffic_measurements = self.get_traffic_metrics(self.traffic_filepath)
         self.global_packets_list, self.global_losses_list, self.global_delay_list, self.metrics_list = self.get_simulation_metrics(self.sim_filepath)
         self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
@@ -65,20 +66,60 @@ class NetworkInput:
         bar_index = token.find('|')
         return token[0:bar_index], token[bar_index:].replace('|', '')
 
+    """
+        Extract information from the input file containing information about simulation number, graph files, and routing files.
+        
+        @param filepath: input file path
+        @return simulation numbers
+        @return list of MatrixPath objects showing routings, if they exist
+    """
     def process_input_file(self, filepath):
         input_file = open(filepath)
         sim_numbers = []
-        graph_files = []
-        routing_files = []
+        graph_routing_dictionary = dict()
+        net_size = filepath.replace('training_data\gnnet-ch21-dataset-train\\', '')[0:2]
         for line in input_file:
             input_data = line.split(';')
             sim_numbers.append(input_data[0])
-            graph_files.append(input_data[1])
-            routing_files.append(input_data[2])
+            filepath_stem = 'training_data\gnnet-ch21-dataset-train\\'
+            graph_file = filepath_stem + net_size + '\graphs\\' + input_data[1]
+            routing_file = (filepath_stem + net_size + '\\routings\\' + input_data[2]).rstrip()
+            graph_routing_dictionary[graph_file] = routing_file
         
         input_file.close() # Close file once done processing
-        return sim_numbers, graph_files, routing_files
 
+        routing_matrices = []
+        # Create routing matrix
+        for key in graph_routing_dictionary:
+            routing_file = graph_routing_dictionary[key]
+            routing_matrix = self.create_routing_matrix(int(net_size), routing_file)
+            routing_matrices.append(routing_matrix)
+        
+        return sim_numbers, routing_matrices 
+
+    """
+        Creating a routing object to show an n x n matrix and how each cell [i, j] contains the path to go from node i
+        to node j. If 'None' value is present, no route is available. 
+
+        @param net_size: size of topology network
+        @param routing_file: file regarding information about routing configuration
+        @return MatrixPath object that shows routes between different nodes, if present
+    """
+    def create_routing_matrix(self, net_size, routing_file):
+        MatrixPath = np.empty((net_size, net_size), dtype = object)
+        with open(routing_file) as rf:
+            for line in rf:
+                nodes = line.split(';')
+                nodes = list(map(int, nodes))
+                MatrixPath[nodes[0], nodes[-1]] = nodes
+        return MatrixPath
+
+    """
+        Create and return a graph readable structure for a specified GML markup.
+
+        @param filepath: GML markup file path
+        @return graph structure
+    """
     def graph_process(self, filepath):
         G = networkx.read_gml(filepath, destringizer = int)
         return G
@@ -296,8 +337,9 @@ def extract_all_in_filepath(main_filepath):
             print("Unzipped " + str(extraction_progress) + " out of " + str(files_length) + " files.")
 
 # Driver code
-INPUT_FILE = 'training_data\gnnet-ch21-dataset-train\25\results_25_400-2000_0_24\results_25_400-2000_0_24\input_files.txt'
-TRAFFIC_FILE = 'training_data\gnnet-ch21-dataset-train\25\results_25_400-2000_0_24\results_25_400-2000_0_24\traffic.txt'
-LINK_FILE = 'training_data\gnnet-ch21-dataset-train\25\results_25_400-2000_0_24\results_25_400-2000_0_24\linkUsage.txt'
-SIM_FILE = 'training_data\gnnet-ch21-dataset-train\25\results_25_400-2000_0_24\results_25_400-2000_0_24\simulationResults.txt'
+INPUT_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\input_files.txt'
+TRAFFIC_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\\traffic.txt'
+LINK_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
+SIM_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
 dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, SIM_FILE)
+dataset.process_input_file(INPUT_FILE)
