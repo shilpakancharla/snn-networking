@@ -12,6 +12,7 @@ class NetworkInput:
         self.sim_filepath = sim_filepath
         
         # Data collection
+        self.simulation_numbers, self.routing_matrices = self.process_input_file(self.input_filepath)
         self.max_avg_lambda_list, self.traffic_measurements = self.get_traffic_metrics(self.traffic_filepath)
         self.global_packets_list, self.global_losses_list, self.global_delay_list, self.metrics_list = self.get_simulation_metrics(self.sim_filepath)
         self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
@@ -51,10 +52,78 @@ class NetworkInput:
                     max_avg_lambda_list.append(max_avg_lambda)
                     traffic_measurements.append(tokens_)
         
-        traffic_measurements_modified = [x for x in traffic_measurements if x != ['']] # Remove empty lists from list
         traffic_file.close() # Close file once done processing
+        traffic_measurements_modified = [x for x in traffic_measurements if x != ['']] # Remove empty lists from list
+        self.create_traffic_time_distribution(traffic_measurements_modified)
         return max_avg_lambda_list, traffic_measurements_modified
 
+    def create_traffic_time_distribution(self, traffic_metrics):
+        traffic_metrics_master = []
+        for list_metric in traffic_metrics:
+            length = len(list_metric)
+            traffic_dictionary = dict()
+            for i in range(length):
+                if list_metric[0] == 0:
+                    traffic_dictionary['Time Distribution'] = 'Exponential'
+                    params = dict()
+                    params['Equivalent Lambda'] = data[1]
+                    params['Average Packets Lambda'] = data[2]
+                    params['Exponential Max Factor'] = data[3]
+                    traffic_dictionary['Time Distribution Parameters'] = params
+                    traffic_metrics_master.append(traffic_dictionary)
+                elif list_metric[0] == 1:
+                    traffic_dictionary['Time Distribution'] = 'Deterministic'
+                    params = dict()
+                    params['Equivalent Lambda'] = data[1]
+                    params['Average Packets Lambda'] = data[2]
+                    traffic_dictionary['Time Distribution Parameters'] = params
+                    traffic_metrics_master.append(traffic_dictionary)
+                elif list_metric[0] == 2:
+                    traffic_dictionary['Time Distribution'] = 'Uniform'
+                    params = dict()
+                    params['Equivalent Lambda'] = data[1]
+                    params['Min Packet Lambda'] = data[2]
+                    params['Max Packet Lambda'] = data[3]
+                    traffic_dictionary['Time Distribution Parameters'] = params
+                    traffic_metrics_master.append(traffic_dictionary)
+                elif list_metric[0] == 3:
+                    traffic_dictionary['Time Distribution'] = 'Normal'
+                    params = dict()
+                    params['Equivalent Lambda'] = data[1]
+                    params['Average Packet Lambda'] = data[2]
+                    params['Standard Deviation'] = data[3]
+                    traffic_dictionary['Time Distribution Parameters'] = params
+                    traffic_metrics_master.append(traffic_dictionary)
+                elif list_metric[0] == 4:
+                    traffic_dictionary['Time Distribution'] = 'OnOff'
+                    params = dict()
+                    params['Equivalent Lambda'] = data[1]
+                    params['Packets Lambda On'] = data[2]
+                    params['Average Time Off'] = data[3]
+                    params['Average Time On'] = data[4]
+                    params['Exponential Max Factor'] = data[5]
+                    traffic_dictionary['Time Distribution Parameters'] = params
+                    traffic_metrics_master.append(traffic_dictionary)
+                elif list_metric[0] == 3:
+                    traffic_dictionary['Time Distribution'] = 'Normal'
+                    params = dict()
+                    params['Equivalent Lambda'] = data[1]
+                    params['Burst Gen Lambda'] = data[2]
+                    params['Bit Rate'] = data[3]
+                    params['Pare to Min Size'] = data[4]
+                    params['Pare to Max Size'] = data[5]
+                    params['Pare to Alpha'] = data[6]
+                    params['Exponential Max Factor'] = data[7]
+                    traffic_dictionary['Time Distribution Parameters'] = params
+                    traffic_metrics_master.append(traffic_dictionary)
+                else:
+                    continue
+        return traffic_metrics_master
+
+    def create_traffic_size_distribution(self, traffic_metrics):
+        
+        return
+    
     """
         Get the maximum average lambda value and the string without it.
 
@@ -132,7 +201,7 @@ class NetworkInput:
         @return list of global packets measurements
         @return list of global losses measurements
         @return list of global delay measurements
-        @return list of lists of metrics
+        @return list of dictionaries of metrics (performance matrix)
     """
     def get_simulation_metrics(self, filepath):
         sim_file = open(filepath)
@@ -165,7 +234,7 @@ class NetworkInput:
 
         @param global_delay: used to remove before iterating through the measurement tokens
         @param measurement_tokens: array of metrics that are separated by '|' and ';'
-        @return list of lists of metrics
+        @return list of dictionaries of metrics
     """
     def get_list_metrics(self, global_delay, measurement_tokens):
         metrics_list = []
@@ -175,44 +244,44 @@ class NetworkInput:
         # Get the rest of the simulation tokens
         counter = 0
         while (counter < len(modified_measurements)):
-            metric_individual_list = [] # Re-initialize list for holding list_metrics
+            metric_aggregated_dictionary = dict() # Re-initialize dictionary to hold the metrics
             for i in range(0, 11, len(modified_measurements)):
                 # Bandwidth
                 bandwidth = modified_measurements[i]
-                metric_individual_list.append(bandwidth)
+                metric_aggregated_dictionary['Average Bandwidth'] = bandwidth
                 # Number of packets transmitted
                 number_packets_transmitted = modified_measurements[i + 1]
-                metric_individual_list.append(number_packets_transmitted)
+                metric_aggregated_dictionary['Packets Transmitted'] = number_packets_transmitted
                 # Number of packets dropped
                 number_packets_dropped = modified_measurements[i + 2]
-                metric_individual_list.append(number_packets_dropped) 
+                metric_aggregated_dictionary['Packets Dropped'] = number_packets_dropped 
                 # Average per-packet delay
                 avg_delay = modified_measurements[i + 3]
-                metric_individual_list.append(avg_delay) 
+                metric_aggregated_dictionary['Average Per-Packet Delay'] = avg_delay
                 # Neperian logarithm of per-packet delay
                 neperian_logarithm = modified_measurements[i + 4]
-                metric_individual_list.append(neperian_logarithm) 
+                metric_aggregated_dictionary['Neperian Logarithm'] = neperian_logarithm
                 # Percentile 10 of per-packet delay
                 percentile_10 = modified_measurements[i + 5]
-                metric_individual_list.append(percentile_10) 
+                metric_aggregated_dictionary['Percentile 10'] = percentile_10 
                 # Percentile 20 of per-packet delay
                 percentile_20 = modified_measurements[i + 6]
-                metric_individual_list.append(percentile_20) 
+                metric_aggregated_dictionary['Percentile 20'] = percentile_20 
                 # Percentile 50 of per-packet delay
                 percentile_50 = modified_measurements[i + 7]
-                metric_individual_list.append(percentile_50) 
+                metric_aggregated_dictionary['Percentile 50'] = percentile_50
                 # Percentile 80 of per-packet delay
                 percentile_80 = modified_measurements[i + 8]
-                metric_individual_list.append(percentile_80) 
+                metric_aggregated_dictionary['Percentile 80'] = percentile_80 
                 # Percentile 90 of per-packet delay
                 percentile_90 = modified_measurements[i + 9]
-                metric_individual_list.append(percentile_90) 
-                # Variance of per-packet delay
+                metric_aggregated_dictionary['Percentile 90'] = percentile_90 
+                # Variance of per-packet delay (jitter)
                 variance_delay = modified_measurements[i + 10]
-                metric_individual_list.append(variance_delay) 
+                metric_aggregated_dictionary['Jitter'] = variance_delay
             
             counter = counter + 1 # Increment counter
-            metrics_list.append(metric_individual_list) # Append to master list of metrics
+            metrics_list.append(metric_aggregated_dictionary) # Append to master list of metrics
 
         return metrics_list
 
@@ -342,4 +411,3 @@ TRAFFIC_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_
 LINK_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
 SIM_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
 dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, SIM_FILE)
-dataset.process_input_file(INPUT_FILE)
