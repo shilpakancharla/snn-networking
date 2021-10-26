@@ -2,6 +2,7 @@ import os
 import tarfile 
 import networkx
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt 
 from collections import Counter
 from torch.utils.data import Dataset, DataLoader
@@ -18,6 +19,17 @@ class NetworkInput:
         self.max_avg_lambda_list, self.list_of_traffic_measurements = self.get_traffic_metrics(self.traffic_filepath)
         self.global_packets_list, self.global_losses_list, self.global_delay_list, self.metrics_list = self.get_simulation_metrics(self.sim_filepath)
         self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
+
+    def write_to_csv(self):
+        print('Simulation numbers: ', len(self.simulation_numbers))
+        print('Routing matrices: ', len(self.routing_matrices[0]))
+        print('Max avg lambda: ', len(self.max_avg_lambda_list))
+        print('Traffic measurements: ', len(self.list_of_traffic_measurements))
+        print('Global packets: ', len(self.global_packets_list))
+        print('Global losses: ', len(self.global_losses_list))
+        print('Global delay: ', len(self.metrics_list))
+        print('Metrics list: ', len(self.metrics_list))
+        print('Port statistics: ', len(self.port_statistics_list))
     
     """
         Return the traffic metrics as a dictionary with the maximum average lambda value as the key and the
@@ -197,23 +209,24 @@ class NetworkInput:
     def process_input_file(self, filepath):
         input_file = open(filepath)
         sim_numbers = []
-        graph_routing_dictionary = dict()
+        graph_files = []
+        routing_files = []
         net_size = filepath.replace('training_data\gnnet-ch21-dataset-train\\', '')[0:2]
         for line in input_file:
             input_data = line.split(';')
             sim_numbers.append(input_data[0])
             filepath_stem = 'training_data\gnnet-ch21-dataset-train\\'
             graph_file = filepath_stem + net_size + '\graphs\\' + input_data[1]
+            graph_files.append(graph_file)
             routing_file = (filepath_stem + net_size + '\\routings\\' + input_data[2]).rstrip()
-            graph_routing_dictionary[graph_file] = routing_file
+            routing_files.append(routing_file)
         
         input_file.close() # Close file once done processing
 
-        routing_matrices = []
         # Create routing matrix
-        for key in graph_routing_dictionary:
-            routing_file = graph_routing_dictionary[key]
-            routing_matrix = self.create_routing_matrix(int(net_size), routing_file)
+        routing_matrices = []
+        for graph, route in zip(graph_files, routing_files):
+            routing_matrix = self.create_routing_matrix(int(net_size), route)
             routing_matrices.append(routing_matrix)
         
         return sim_numbers, routing_matrices 
@@ -693,5 +706,4 @@ TRAFFIC_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-200
 LINK_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
 SIM_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
 dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, SIM_FILE)
-#dataset.plot_size_dist_type(dataset.list_of_traffic_measurements, 25)
-dataset.plot_traffic_time_characteristics(dataset.list_of_traffic_measurements, 25)
+dataset.write_to_csv()
