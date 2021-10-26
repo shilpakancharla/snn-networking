@@ -83,7 +83,7 @@ class NetworkInput:
             traffic_dictionary['Time Distribution'] = 'Exponential'
             parameters = dict()
             parameters['Equivalent Lambda'] = float(traffic_metrics[1])
-            parameters['Average Packets Lambda'] = float(traffic_metrics[2])
+            parameters['Average Packet Lambda'] = float(traffic_metrics[2])
             parameters['Exponential Max Factor'] = float(traffic_metrics[3])
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 4
@@ -91,7 +91,7 @@ class NetworkInput:
             traffic_dictionary['Time Distribution'] = 'Deterministic'
             parameters = dict()
             parameters['Equivalent Lambda'] = float(traffic_metrics[1])
-            parameters['Average Packets Lambda'] = float(traffic_metrics[2])
+            parameters['Average Packet Lambda'] = float(traffic_metrics[2])
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 3
         elif int(traffic_metrics[0]) == 2:
@@ -121,7 +121,7 @@ class NetworkInput:
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 6
         elif int(traffic_metrics[0]) == 5:
-            traffic_dictionary['Time Distribution'] = 'Normal'
+            traffic_dictionary['Time Distribution'] = 'PPBP'
             parameters = dict()
             parameters['Equivalent Lambda'] = float(traffic_metrics[1])
             parameters['Burst Gen Lambda'] = float(traffic_metrics[2])
@@ -414,7 +414,13 @@ class NetworkInput:
 
         link_file.close() # Close the file once done processing
         return port_statistics_list
+    
+    """
+        Function for plotting the types of time and size distributions for a particular network topology.
 
+        @param list_of_traffic_measurements: list of dictionaries of time and size distributions of traffic data
+        @param topology_size: number of nodes in network
+    """
     def plot_size_dist_type(self, list_of_traffic_measurements, topology_size):
         time_distribution_type = []
         size_distribution_type = []
@@ -439,6 +445,8 @@ class NetworkInput:
         plt.title("Time Distributions for Topology Size " + str(topology_size))
         plt.xticks(time_x_pos, time_keys)
         #plt.show()
+        plt.savefig(f'plots/time_distribution_{topology_size}.png')
+        
         # Create bar graph for size distribution
         size_x_pos = [i for i, _ in enumerate(size_keys)]
         plt.bar(size_x_pos, size_values, color = 'deeppink')
@@ -446,7 +454,195 @@ class NetworkInput:
         plt.ylabel("Count")
         plt.title("Size Distributions for Topology Size " + str(topology_size))
         plt.xticks(size_x_pos, size_keys)
-        plt.show()
+        #plt.show()
+        plt.savefig(f'plots/size_distribution_{topology_size}.png')
+
+    """
+        Creates plots of various time distribution characters of traffic metrics.
+
+        @param list_of_traffic_measurements: list of dictionaries of time and size distributions of traffic data
+        @param topology_size: number of nodes in network
+    """
+    def plot_traffic_time_characteristics(self, list_of_traffic_measurements, topology_size):
+        equivalent_lambda_exp = []
+        avg_packets_lambda_exp = []
+        exp_max_factor_exp = []
+        equivalent_lambda_det = []
+        avg_packets_lambda_det = []
+        equivalent_lambda_uniform = []
+        min_packet_lambda = []
+        max_packet_lambda = []
+        equivalent_lambda_normal = []
+        avg_packet_lambda_normal = []
+        std_dev_normal = []
+        equivalent_lambda_onoff = []
+        packets_lambda_on = []
+        avg_time_off = []
+        avg_time_on = []
+        exp_max_factor_onoff = []
+        equivalent_lambda_ppbp = []
+        burst_gen_lambda = []
+        bit_rate = []
+        pare_min_size = []
+        pare_max_size = []
+        pare_alpha = []
+        exp_max_factor_ppbp = []
+        for traffic_measurement in list_of_traffic_measurements:
+            if traffic_measurement['Time Distribution'] == 'Exponential':
+                # Collect exponential distribution characteristics
+                equivalent_lambda_exp.append(traffic_measurement['Time Distribution Parameters']['Equivalent Lambda'])
+                avg_packets_lambda_exp.append(traffic_measurement['Time Distribution Parameters']['Average Packet Lambda'])
+                exp_max_factor_exp.append(traffic_measurement['Time Distribution Parameters']['Exponential Max Factor'])
+            elif traffic_measurement['Time Distribution'] == 'Deterministic':
+                # Collect deterministic distribution characteristics
+                equivalent_lambda_det.append(traffic_measurement['Time Distribution Parameters']['Equivalent Lambda'])
+                avg_packets_lambda_det.append(traffic_measurement['Time Distribution Parameters']['Average Packet Lambda'])
+            elif traffic_measurement['Time Distribution'] == 'Uniform':
+                # Collect uniform distribution characteristics
+                equivalent_lambda_uniform.append(traffic_measurement['Time Distribution Parameters']['Equivalent Lambda'])
+                min_packet_lambda.append(traffic_measurement['Time Distribution Parameters']['Min Packet Lambda'])
+                max_packet_lambda.append(traffic_measurement['Time Distribution Parameters']['Max Packet Lambda'])
+            elif traffic_measurement['Time Distribution'] == 'Normal':
+                # Collect normal distribution characteristics
+                equivalent_lambda_normal.append(traffic_measurement['Time Distribution Parameters']['Equivalent Lambda'])
+                avg_packet_lambda_normal.append(traffic_measurement['Time Distribution Parameters']['Average Packet Lambda'])
+                std_dev_normal.append(traffic_measurement['Time Distribution Parameters']['Standard Deviation'])
+            elif traffic_measurement['Time Distribution'] == 'OnOff':
+                # Collect on-off distribution characteristics
+                equivalent_lambda_onoff.append(traffic_measurement['Time Distribution Parameters']['Equivalent Lambda'])
+                packets_lambda_on.append(traffic_measurement['Time Distribution Parameters']['Packets Lambda On'])
+                avg_time_off.append(traffic_measurement['Time Distribution Parameters']['Average Time Off'])
+                avg_time_on.append(traffic_measurement['Time Distribution Parameters']['Average Time On'])
+                exp_max_factor_onoff.append(traffic_measurement['Time Distribution Parameters']['Exponential Max Factor'])
+            elif traffic_measurement['Time Distribution'] == 'PPBP':
+                # Collect PPBP distribution characteristics
+                equivalent_lambda_ppbp.append(traffic_measurement['Time Distribution Parameters']['Equivalent Lambda'])
+                burst_gen_lambda.append(traffic_measurement['Time Distribution Parameters']['Burst Gen Lambda'])
+                bit_rate.append(traffic_measurement['Time Distribution Parameters']['Bit Rate'])
+                pare_min_size.append(traffic_measurement['Time Distribution Parameters']['Pare to Min Size'])
+                pare_max_size.append(traffic_measurement['Time Distribution Parameters']['Pare to Max Size'])
+                pare_alpha.append(traffic_measurement['Time Distribution Parameters']['Pare to Alpha'])
+                exp_max_factor_ppbp.append(traffic_measurement['Time Distribution Parameters']['Exponential Max Factor'])
+            else:
+                continue
+        
+        # Plot exponential distribution statistics
+        if len(equivalent_lambda_exp) != 0:
+            plt.boxplot([equivalent_lambda_exp, avg_packets_lambda_exp, exp_max_factor_exp], 
+                    vert = True,
+                    labels = ['Equivalent Lambda', 'Average Packets Lambda', 'Exponential Max Factor'],
+                    meanline = True)
+            plt.title("Exponential (Time) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/time/exp/{topology_size}/time_exponential_dist_statistics_{topology_size}.png')
+        # Plot deterministic distribution statistics
+        if len(equivalent_lambda_det) != 0:
+            plt.boxplot([equivalent_lambda_det, avg_packets_lambda_det],
+                    vert = False,
+                    labels = ['Equivalent Lambda', 'Average Packets Lambda'],
+                    meanline = True)
+            plt.title("Deterministic (Time) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/time/det/{topology_size}/time_deterministic_dist_statistics_{topology_size}.png')
+        # Plot uniform distribution statistics
+        if len(equivalent_lambda_uniform) != 0:
+            plt.boxplot([equivalent_lambda_uniform, min_packet_lambda, max_packet_lambda],
+                    vert = False,
+                    labels = ['Equivalent Lambda', 'Min Packet Lambda', 'Max Packet Lambda'],
+                    meanline = True)
+            plt.title("Uniform (Time) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/time/uniform/{topology_size}/time_uniform_dist_statistics_{topology_size}.png')
+        # Plot normal distribution statistics
+        if len(equivalent_lambda_normal) != 0:
+            plt.boxplot([equivalent_lambda_normal, avg_packet_lambda_normal, std_dev_normal],
+                    vert = False,
+                    labels = ['Equivalent Lambda', 'Average Packet Lambda', 'Standard Deviation'],
+                    meanline = True)
+            plt.title("Normal (Time) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/time/normal/{topology_size}/time_normal_dist_statistics_{topology_size}.png')
+        # Plot on-off distribution statistics
+        if len(equivalent_lambda_onoff) != 0:
+            plt.boxplot([equivalent_lambda_onoff, packets_lambda_on, avg_time_off, avg_time_on, exp_max_factor_onoff],
+                    vert = False,
+                    labels = ['Equivalent Lambda', 'Packets Lambda On', 'Average Time Off', 'Average Time On', 'Exponential Max Factor'],
+                    meanline = True)
+            plt.title("On-off (Time) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/time/onoff/{topology_size}/time_onoff_dist_statistics_{topology_size}.png')
+        # Plot PPBP distribution statistics
+        if len(equivalent_lambda_ppbp) != 0:
+            plt.boxplot([equivalent_lambda_ppbp, burst_gen_lambda, bit_rate, pare_min_size, pare_max_size, pare_alpha, exp_max_factor_ppbp],
+                    vert = False,
+                    labels = ['Equivalent Lambda', 'Burst Gen Lambda', 'Bit Rate', 'Pare to Min Size', 'Pare to Max Size', 'Pare to Alpha', 'Exponential Max Factor'],
+                    meanline = True)
+            plt.title("PPBP (Time) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/time/ppbp/{topology_size}/time_ppbp_dist_statistics_{topology_size}.png')
+    """
+        Creates plots of various size distribution characters of traffic metrics.
+
+        @param list_of_traffic_measurements: list of dictionaries of time and size distributions of traffic data
+        @param topology_size: number of nodes in network
+    """
+    def plot_traffic_size_characteristics(self, list_of_traffic_measurements):
+        avg_packet_size_det = []
+        avg_packet_size_uniform = []
+        min_size = []
+        max_size = []
+        avg_packet_size_bi = []
+        packet_size_1 = []
+        packet_size_2 = []
+        avg_packet_size_generic = []
+        number_of_candidates = []
+        for traffic_measurement in list_of_traffic_measurements:
+            if traffic_measurement['Size Distribution'] == 'Deterministic':
+                # Collect deterministic distribution characteristics
+                avg_packet_size_det.append(traffic_measurement['Size Distribution Parameters']['Average Packet Size'])
+            elif traffic_measurement['Size Distribution'] == 'Uniform':
+                # Collect uniform distribution characteristics
+                avg_packet_size_uniform.append(traffic_measurement['Size Distribution Parameters']['Average Packet Size'])
+                min_size.append(traffic_measurement['Size Distribution Parameters']['Min Size'])
+                max_size.append(traffic_measurement['Size Distribution Parameters']['Max Size'])
+            elif traffic_measurement['Size Distribution'] == 'Binomial':
+                # Collect binomial distribution characteristics
+                avg_packet_size_bi.append(traffic_measurement['Size Distribution Parameters']['Average Packet Size'])
+                packet_size_1.append(traffic_measurement['Size Distribution Parameters']['Packet Size 1'])
+                packet_size_2.append(traffic_measurement['Size Distribution Parameters']['Packet Size 2'])
+            elif traffic_measurement['Size Distribution'] == 'Generic':
+                # Collect generic distribution characteristics
+                avg_packet_size_generic.append(traffic_measurement['Size Distribution Parameters']['Average Packet Size'])
+                number_of_candidates.append(traffic_measurement['Size Distribution Parameters']['Number of Candidates'])
+            else:
+                continue
+
+        # Plot deterministic distribution statistics
+        if len(avg_packet_size_det) != 0:
+            plt.boxplot(avg_packet_size_det,
+                    vert = False,
+                    labels = 'Average Packet Size',
+                    meanline = True)
+            plt.title("Deterministic (Size) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/size/det/{topology_size}/size_deterministic_dist_statistics_{topology_size}.png')
+        # Plot uniform distribution statistics
+        if len(avg_packet_size_uniform) != 0:
+            plt.boxplot([avg_packet_size_uniform, min_size, max_size],
+                    vert = False,
+                    labels = ['Average Packet Size', 'Min Size', 'Max Size'],
+                    meanline = True)
+            plt.title("Uniform (Size) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/size/uniform/{topology_size}/size_uniform_dist_statistics_{topology_size}.png')
+        # Plot binomial distribution statistics
+        if len(avg_packet_size_bi) != 0:
+            plt.boxplot([avg_packet_size_bi, packet_size_1, packet_size_2],
+                    vert = False,
+                    labels = ['Average Packet Size', 'Packet Size 1', 'Packet Size 2'],
+                    meanline = True)
+            plt.title("Binomial (Size) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/size/bi/{topology_size}/size_binomial_dist_statistics_{topology_size}.png')
+        # Plot generic distribution statistics
+        if len(avg_packet_size_generic) != 0:
+            plt.boxplot([avg_packet_size_generic, number_of_candidates],
+                    vert = False,
+                    labels = ['Average Packet Size', 'Number of Candidates'],
+                    meanline = True)
+            plt.title("Generic (Size) Statistics for Topology Size " + str(topology_size))
+            plt.savefig(f'plots/size/gen/{topology_size}/size_generic_dist_statistics_{topology_size}.png')
 
 """
     Extract contents of tar files downloaded.
@@ -491,9 +687,11 @@ def extract_all_in_filepath(main_filepath):
             print("Unzipped " + str(extraction_progress) + " out of " + str(files_length) + " files.")
 
 # Driver code
-INPUT_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\input_files.txt'
-TRAFFIC_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\\traffic.txt'
-LINK_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
-SIM_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
+TRAINING_PATH = 'training_data\gnnet-ch21-dataset-train\\'
+INPUT_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\input_files.txt'
+TRAFFIC_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\\traffic.txt'
+LINK_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
+SIM_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
 dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, SIM_FILE)
-dataset.plot_size_dist_type(dataset.list_of_traffic_measurements, 25)
+#dataset.plot_size_dist_type(dataset.list_of_traffic_measurements, 25)
+dataset.plot_traffic_time_characteristics(dataset.list_of_traffic_measurements, 25)
