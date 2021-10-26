@@ -1,7 +1,9 @@
 import os 
 import tarfile 
 import networkx
-import numpy as np 
+import numpy as np
+import matplotlib.pyplot as plt 
+from collections import Counter
 from torch.utils.data import Dataset, DataLoader
 
 class NetworkInput:
@@ -80,54 +82,54 @@ class NetworkInput:
         if int(traffic_metrics[0]) == 0:
             traffic_dictionary['Time Distribution'] = 'Exponential'
             parameters = dict()
-            parameters['Equivalent Lambda'] = traffic_metrics[1]
-            parameters['Average Packets Lambda'] = traffic_metrics[2]
-            parameters['Exponential Max Factor'] = traffic_metrics[3]
+            parameters['Equivalent Lambda'] = float(traffic_metrics[1])
+            parameters['Average Packets Lambda'] = float(traffic_metrics[2])
+            parameters['Exponential Max Factor'] = float(traffic_metrics[3])
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 4
         elif int(traffic_metrics[0]) == 1:
             traffic_dictionary['Time Distribution'] = 'Deterministic'
             parameters = dict()
-            parameters['Equivalent Lambda'] = traffic_metrics[1]
-            parameters['Average Packets Lambda'] = traffic_metrics[2]
+            parameters['Equivalent Lambda'] = float(traffic_metrics[1])
+            parameters['Average Packets Lambda'] = float(traffic_metrics[2])
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 3
         elif int(traffic_metrics[0]) == 2:
             traffic_dictionary['Time Distribution'] = 'Uniform'
             parameters = dict()
-            parameters['Equivalent Lambda'] = traffic_metrics[1]
-            parameters['Min Packet Lambda'] = traffic_metrics[2]
-            parameters['Max Packet Lambda'] = traffic_metrics[3]
+            parameters['Equivalent Lambda'] = float(traffic_metrics[1])
+            parameters['Min Packet Lambda'] = float(traffic_metrics[2])
+            parameters['Max Packet Lambda'] = float(traffic_metrics[3])
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 4
         elif int(traffic_metrics[0]) == 3:
             traffic_dictionary['Time Distribution'] = 'Normal'
             parameters = dict()
-            parameters['Equivalent Lambda'] = traffic_metrics[1]
-            parameters['Average Packet Lambda'] = traffic_metrics[2]
-            parameters['Standard Deviation'] = traffic_metrics[3]
+            parameters['Equivalent Lambda'] = float(traffic_metrics[1])
+            parameters['Average Packet Lambda'] = float(traffic_metrics[2])
+            parameters['Standard Deviation'] = float(traffic_metrics[3])
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 4
         elif int(traffic_metrics[0]) == 4:
             traffic_dictionary['Time Distribution'] = 'OnOff'
             parameters = dict()
-            parameters['Equivalent Lambda'] = traffic_metrics[1]
-            parameters['Packets Lambda On'] = traffic_metrics[2]
-            parameters['Average Time Off'] = traffic_metrics[3]
-            parameters['Average Time On'] = traffic_metrics[4]
-            parameters['Exponential Max Factor'] = traffic_metrics[5]
+            parameters['Equivalent Lambda'] = float(traffic_metrics[1])
+            parameters['Packets Lambda On'] = float(traffic_metrics[2])
+            parameters['Average Time Off'] = float(traffic_metrics[3])
+            parameters['Average Time On'] = float(traffic_metrics[4])
+            parameters['Exponential Max Factor'] = float(traffic_metrics[5])
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 6
         elif int(traffic_metrics[0]) == 5:
             traffic_dictionary['Time Distribution'] = 'Normal'
             parameters = dict()
-            parameters['Equivalent Lambda'] = traffic_metrics[1]
-            parameters['Burst Gen Lambda'] = traffic_metrics[2]
-            parameters['Bit Rate'] = traffic_metrics[3]
-            parameters['Pare to Min Size'] = traffic_metrics[4]
-            parameters['Pare to Max Size'] = traffic_metrics[5]
-            parameters['Pare to Alpha'] = traffic_metrics[6]
-            parameters['Exponential Max Factor'] = traffic_metrics[7]
+            parameters['Equivalent Lambda'] = float(traffic_metrics[1])
+            parameters['Burst Gen Lambda'] = float(traffic_metrics[2])
+            parameters['Bit Rate'] = float(traffic_metrics[3])
+            parameters['Pare to Min Size'] = float(traffic_metrics[4])
+            parameters['Pare to Max Size'] = float(traffic_metrics[5])
+            parameters['Pare to Alpha'] = float(traffic_metrics[6])
+            parameters['Exponential Max Factor'] = float(traffic_metrics[7])
             traffic_dictionary['Time Distribution Parameters'] = parameters
             return 8
         else:
@@ -145,30 +147,30 @@ class NetworkInput:
         if int(traffic_metrics[offset]) == 0:
             traffic_dictionary['Size Distribution'] = 'Deterministic'
             parameters = dict()
-            parameters['Average Packet Size'] = traffic_metrics[offset + 1]
+            parameters['Average Packet Size'] = float(traffic_metrics[offset + 1])
             traffic_dictionary['Size Distribution Parameters'] = parameters
         elif int(traffic_metrics[offset]) == 1:
             traffic_dictionary['Size Distribution'] = 'Uniform'
             parameters = dict()
-            parameters['Average Packet Size'] = traffic_metrics[offset + 1]
-            parameters['Min Size'] = traffic_metrics[offset + 2]
-            parameters['Max Size'] = traffic_metrics[offset + 3]
+            parameters['Average Packet Size'] = float(traffic_metrics[offset + 1])
+            parameters['Min Size'] = float(traffic_metrics[offset + 2])
+            parameters['Max Size'] = float(traffic_metrics[offset + 3])
             traffic_dictionary['Size Distribution Parameters'] = parameters
         elif int(traffic_metrics[offset]) == 2:
             traffic_dictionary['Size Distribution'] = 'Binomial'
             parameters = dict()
-            parameters['Average Packet Size'] = traffic_metrics[offset + 1]
-            parameters['Packet Size 1'] = traffic_metrics[offset + 2]
-            parameters['Packet Size 2'] = traffic_metrics[offset + 3]
+            parameters['Average Packet Size'] = float(traffic_metrics[offset + 1])
+            parameters['Packet Size 1'] = float(traffic_metrics[offset + 2])
+            parameters['Packet Size 2'] = float(traffic_metrics[offset + 3])
             traffic_dictionary['Size Distribution Parameters'] = parameters
         elif int(traffic_metrics[offset]) == 3:
             traffic_dictionary['Size Distribution'] = 'Generic'
             parameters = dict()
-            parameters['Average Packet Size'] = traffic_metrics[offset + 1]
-            parameters['Number of Candidates'] = traffic_metrics[offset + 2]
+            parameters['Average Packet Size'] = float(traffic_metrics[offset + 1])
+            parameters['Number of Candidates'] = float(traffic_metrics[offset + 2])
             for i in range(0, int(traffic_metrics[offset + 2]) * 2, 2):
-                parameters['Size %d' % (i / 2)] = traffic_metrics[offset + 3 + i]
-                parameters['Prob %d' % (i / 2)] = traffic_dictionary[offset + 4 + i]
+                parameters['Size %d' % (i / 2)] = float(traffic_metrics[offset + 3 + i])
+                parameters['Prob %d' % (i / 2)] = float(traffic_dictionary[offset + 4 + i])
             traffic_dictionary['Size Distribution Parameters'] = parameters
         else:
             return -1
@@ -413,6 +415,39 @@ class NetworkInput:
         link_file.close() # Close the file once done processing
         return port_statistics_list
 
+    def plot_size_dist_type(self, list_of_traffic_measurements, topology_size):
+        time_distribution_type = []
+        size_distribution_type = []
+        for traffic_measurement in list_of_traffic_measurements:
+            for key in traffic_measurement:
+                if key == 'Time Distribution':
+                    time_distribution_type.append(traffic_measurement['Time Distribution'])
+                elif key == 'Size Distribution':
+                    size_distribution_type.append(traffic_measurement['Size Distribution'])
+                else:
+                    continue
+        time_keys = Counter(time_distribution_type).keys()
+        time_values = Counter(time_distribution_type).values()
+        size_keys = Counter(size_distribution_type).keys()
+        size_values = Counter(size_distribution_type).values()
+
+        # Create bar graph for time distribution
+        time_x_pos = [i for i, _ in enumerate(time_keys)]
+        plt.bar(time_x_pos, time_values, color = 'aquamarine')
+        plt.xlabel("Time Distribution Type")
+        plt.ylabel("Count")
+        plt.title("Time Distributions for Topology Size " + str(topology_size))
+        plt.xticks(time_x_pos, time_keys)
+        #plt.show()
+        # Create bar graph for size distribution
+        size_x_pos = [i for i, _ in enumerate(size_keys)]
+        plt.bar(size_x_pos, size_values, color = 'deeppink')
+        plt.xlabel("Size Distribution Type")
+        plt.ylabel("Count")
+        plt.title("Size Distributions for Topology Size " + str(topology_size))
+        plt.xticks(size_x_pos, size_keys)
+        plt.show()
+
 """
     Extract contents of tar files downloaded.
 
@@ -461,3 +496,4 @@ TRAFFIC_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_
 LINK_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
 SIM_FILE = 'training_data\gnnet-ch21-dataset-train\\25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
 dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, SIM_FILE)
+dataset.plot_size_dist_type(dataset.list_of_traffic_measurements, 25)
