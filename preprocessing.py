@@ -54,76 +54,125 @@ class NetworkInput:
         
         traffic_file.close() # Close file once done processing
         traffic_measurements_modified = [x for x in traffic_measurements if x != ['']] # Remove empty lists from list
-        self.create_traffic_time_distribution(traffic_measurements_modified)
+        
+        # Get the time and size distribution parameters
+        list_of_traffic_measurements = []
+        for traffic_measurement in traffic_measurements_modified:
+            length = len(traffic_measurement)
+            for i in range(length):
+                traffic_dictionary = dict()
+                offset = self.create_traffic_time_distribution(traffic_measurements_modified, traffic_dictionary)
+                if offset != -1: # Go through this loop if we have a valid offset
+                    self.create_traffic_size_distribution(traffic_measurements_modified, offset, traffic_dictionary)
+                list_of_traffic_measurements.append(traffic_dictionary)
+        
         return max_avg_lambda_list, traffic_measurements_modified
 
-    def create_traffic_time_distribution(self, traffic_metrics):
-        traffic_metrics_master = []
-        for list_metric in traffic_metrics:
-            length = len(list_metric)
-            traffic_dictionary = dict()
-            for i in range(length):
-                if list_metric[0] == 0:
-                    traffic_dictionary['Time Distribution'] = 'Exponential'
-                    params = dict()
-                    params['Equivalent Lambda'] = data[1]
-                    params['Average Packets Lambda'] = data[2]
-                    params['Exponential Max Factor'] = data[3]
-                    traffic_dictionary['Time Distribution Parameters'] = params
-                    traffic_metrics_master.append(traffic_dictionary)
-                elif list_metric[0] == 1:
-                    traffic_dictionary['Time Distribution'] = 'Deterministic'
-                    params = dict()
-                    params['Equivalent Lambda'] = data[1]
-                    params['Average Packets Lambda'] = data[2]
-                    traffic_dictionary['Time Distribution Parameters'] = params
-                    traffic_metrics_master.append(traffic_dictionary)
-                elif list_metric[0] == 2:
-                    traffic_dictionary['Time Distribution'] = 'Uniform'
-                    params = dict()
-                    params['Equivalent Lambda'] = data[1]
-                    params['Min Packet Lambda'] = data[2]
-                    params['Max Packet Lambda'] = data[3]
-                    traffic_dictionary['Time Distribution Parameters'] = params
-                    traffic_metrics_master.append(traffic_dictionary)
-                elif list_metric[0] == 3:
-                    traffic_dictionary['Time Distribution'] = 'Normal'
-                    params = dict()
-                    params['Equivalent Lambda'] = data[1]
-                    params['Average Packet Lambda'] = data[2]
-                    params['Standard Deviation'] = data[3]
-                    traffic_dictionary['Time Distribution Parameters'] = params
-                    traffic_metrics_master.append(traffic_dictionary)
-                elif list_metric[0] == 4:
-                    traffic_dictionary['Time Distribution'] = 'OnOff'
-                    params = dict()
-                    params['Equivalent Lambda'] = data[1]
-                    params['Packets Lambda On'] = data[2]
-                    params['Average Time Off'] = data[3]
-                    params['Average Time On'] = data[4]
-                    params['Exponential Max Factor'] = data[5]
-                    traffic_dictionary['Time Distribution Parameters'] = params
-                    traffic_metrics_master.append(traffic_dictionary)
-                elif list_metric[0] == 3:
-                    traffic_dictionary['Time Distribution'] = 'Normal'
-                    params = dict()
-                    params['Equivalent Lambda'] = data[1]
-                    params['Burst Gen Lambda'] = data[2]
-                    params['Bit Rate'] = data[3]
-                    params['Pare to Min Size'] = data[4]
-                    params['Pare to Max Size'] = data[5]
-                    params['Pare to Alpha'] = data[6]
-                    params['Exponential Max Factor'] = data[7]
-                    traffic_dictionary['Time Distribution Parameters'] = params
-                    traffic_metrics_master.append(traffic_dictionary)
-                else:
-                    continue
-        return traffic_metrics_master
+    """
+        Fill out dictionary with traffic time distribution metrics and return the offset of where to read size distribution parameters.
 
-    def create_traffic_size_distribution(self, traffic_metrics):
+        @param traffic_metrics: list of all the flow traffic metrics to be processed
+        @param traffic_dictionary: dictionary to fill out with the time distribution information
+        @return number of elements read from the list of parameters data
+    """
+    def create_traffic_time_distribution(self, traffic_metrics, traffic_dictionary):
+        if traffic_metrics[0] == 0:
+            traffic_dictionary['Time Distribution'] = 'Exponential'
+            parameters = dict()
+            parameters['Equivalent Lambda'] = data[1]
+            parameters['Average Packets Lambda'] = data[2]
+            parameters['Exponential Max Factor'] = data[3]
+            traffic_dictionary['Time Distribution Parameters'] = parameters
+            return 4
+        elif traffic_metrics[0] == 1:
+            traffic_dictionary['Time Distribution'] = 'Deterministic'
+            parameters = dict()
+            parameters['Equivalent Lambda'] = data[1]
+            parameters['Average Packets Lambda'] = data[2]
+            traffic_dictionary['Time Distribution Parameters'] = parameters
+            return 3
+        elif traffic_metrics[0] == 2:
+            traffic_dictionary['Time Distribution'] = 'Uniform'
+            parameters = dict()
+            parameters['Equivalent Lambda'] = data[1]
+            parameters['Min Packet Lambda'] = data[2]
+            parameters['Max Packet Lambda'] = data[3]
+            traffic_dictionary['Time Distribution Parameters'] = parameters
+            return 4
+        elif traffic_metrics[0] == 3:
+            traffic_dictionary['Time Distribution'] = 'Normal'
+            parameters = dict()
+            parameters['Equivalent Lambda'] = data[1]
+            parameters['Average Packet Lambda'] = data[2]
+            parameters['Standard Deviation'] = data[3]
+            traffic_dictionary['Time Distribution Parameters'] = parameters
+            return 4
+        elif traffic_metrics[0] == 4:
+            traffic_dictionary['Time Distribution'] = 'OnOff'
+            parameters = dict()
+            parameters['Equivalent Lambda'] = data[1]
+            parameters['Packets Lambda On'] = data[2]
+            parameters['Average Time Off'] = data[3]
+            parameters['Average Time On'] = data[4]
+            parameters['Exponential Max Factor'] = data[5]
+            traffic_dictionary['Time Distribution Parameters'] = parameters
+            return 6
+        elif traffic_metrics[0] == 5:
+            traffic_dictionary['Time Distribution'] = 'Normal'
+            parameters = dict()
+            parameters['Equivalent Lambda'] = data[1]
+            parameters['Burst Gen Lambda'] = data[2]
+            parameters['Bit Rate'] = data[3]
+            parameters['Pare to Min Size'] = data[4]
+            parameters['Pare to Max Size'] = data[5]
+            parameters['Pare to Alpha'] = data[6]
+            parameters['Exponential Max Factor'] = data[7]
+            traffic_dictionary['Time Distribution Parameters'] = parameters
+            return 8
+        else:
+            return -1
+
+    """
+        Retrieve the size distribution parameters of the traffic data. 
+
+        @param traffic_metrics: list of all the flow traffic metrics to be processed
+        @param offset: number of elements read from the list of parameters data
+        @param traffic_dictionary: dictionary to fill out with the time distribution information
+        @return 0 if successful iteration, or -1 otherwise
+    """
+    def create_traffic_size_distribution(self, traffic_metrics, offset, traffic_dictionary):
+        if traffic_metrics[offset] == 0:
+            traffic_dictionary['Size Distribution'] = 'Deterministic'
+            parameters = dict{}
+            parameters = ['Average Packet Size'] = traffic_metrics[offset + 1]
+            traffic_dictionary['Size Distribution Parameters'] = parameters
+        elif traffic_metrics[offset] == 1:
+            traffic_dictionary['Size Distribution'] = 'Uniform'
+            parameters = dict()
+            parameters['Average Packet Size'] = traffic_metrics[offset + 1]
+            parameters['Min Size'] = traffic_metrics[offset + 2]
+            parameters['Max Size'] = traffic_metrics[offset + 3]
+            traffic_dictionary['Size Distribution Parameters'] = parameters
+        elif traffic_metrics[offset] == 2:
+            traffic_dictionary['Size Distribution'] = 'Binomial'
+            parameters = dict()
+            parameters['Average Packet Size'] = traffic_metrics[offset + 1]
+            parameters['Packet Size 1'] = traffic_metrics[offset + 2]
+            parameters['Packet Size 2'] = traffic_metrics[offset + 3]
+            traffic_dictionary['Size Distribution Parameters'] = parameters
+        elif traffic_metrics[offset] == 3:
+            traffic_dictionary['Size Distribution'] = 'Generic'
+            parameters = dict()
+            parameters['Average Packet Size'] = traffic_metrics[offset + 1]
+            parameters['Number of Candidates'] = traffic_metrics[offset + 2]
+            for i in range(0, int(traffic_metrics[offset + 2]) * 2, 2)
+                parameters['Size %d' % (i / 2)] = traffic_metrics[offset + 3 + i]
+                parameters['Prob %d' % ( / 2)] = traffic_dictionary[offset + 4 + i]
+            traffic_dictionary['Size Distribution Parameters'] = parameters
+        else:
+            return -1
+        return 0
         
-        return
-    
     """
         Get the maximum average lambda value and the string without it.
 
@@ -223,7 +272,7 @@ class NetworkInput:
             global_delay = global_delay_temp[0:bar_index]
             global_delay_list.append(global_delay)
 
-            metrics_list_ = self.get_list_metrics(global_delay, measurement_tokens) # Get the rest of the list metrics
+            metrics_list_ = self.get_traffic_measurementss(global_delay, measurement_tokens) # Get the rest of the list metrics
             metrics_list.append(metrics_list_)
         
         sim_file.close() # Close the file once done processing
@@ -236,7 +285,7 @@ class NetworkInput:
         @param measurement_tokens: array of metrics that are separated by '|' and ';'
         @return list of dictionaries of metrics
     """
-    def get_list_metrics(self, global_delay, measurement_tokens):
+    def get_traffic_measurementss(self, global_delay, measurement_tokens):
         metrics_list = []
         modified_measurements = self.modify_tokens(measurement_tokens)  
         if global_delay in modified_measurements:
