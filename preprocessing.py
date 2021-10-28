@@ -8,21 +8,23 @@ from collections import Counter
 from torch.utils.data import Dataset, DataLoader
 
 class NetworkInput:
-    def __init__(self, input_filepath, traffic_filepath, link_filepath, sim_filepath):
+    def __init__(self, input_filepath, traffic_filepath, link_filepath, graph_filepath, sim_filepath):
         self.input_filepath = input_filepath
         self.traffic_filepath = traffic_filepath
         self.link_filepath = link_filepath
+        self.graph_filepath = graph_filepath
         self.sim_filepath = sim_filepath
         
         # Data collection
         self.simulation_numbers, self.routing_matrices = self.process_input_file(self.input_filepath)
         self.max_avg_lambda_list, self.list_of_traffic_measurements = self.get_traffic_metrics(self.traffic_filepath)
         self.global_packets_list, self.global_losses_list, self.global_delay_list, self.metrics_list = self.get_simulation_metrics(self.sim_filepath)
+        self.topology_object = self.graph_process(graph_filepath)
         self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
 
     def write_to_csv(self):
         print('Simulation numbers: ', len(self.simulation_numbers))
-        print('Routing matrices: ', len(self.routing_matrices[0]))
+        print('Routing matrices: ', len(self.routing_matrices))
         print('Max avg lambda: ', len(self.max_avg_lambda_list))
         print('Traffic measurements: ', len(self.list_of_traffic_measurements))
         print('Global packets: ', len(self.global_packets_list))
@@ -251,11 +253,30 @@ class NetworkInput:
     """
         Create and return a graph readable structure for a specified GML markup.
 
-        @param filepath: GML markup file path
+        @param filepath: directory of GML markup files for a topology size
         @return graph structure
     """
     def graph_process(self, filepath):
-        G = networkx.read_gml(filepath, destringizer = int)
+        graphs_dictionary = dict()
+        for topology_file in os.listdir(filepath):
+            G = networkx.read_gml(filepath + '/' + topology_file, destringizer = int)
+            graphs_dictionary[topology_file] = G
+            # Nodes of graph
+            nodes = G.nodes
+            # Topology edges
+            edges = G.edges
+            # Information parameters related to a node
+            for i in nodes:
+                queue_sizes = nodes[i]['queueSizes']
+                scheduling_policy = nodes[i]['schedulingPolicy']
+                levelsQoS = nodes[i]['levelsQoS']
+            for i in edges:
+                source = edges[i]['source']
+                target = edges[i]['target']
+                key = edges[i]['key']
+                port = edges[i]['port']
+                weight = edges[i]['weight']
+                bandwidth = edges[i]['bandwidth']
         return G
     
     """
@@ -547,6 +568,7 @@ class NetworkInput:
                     meanline = True)
             plt.title("Exponential (Time) Statistics for Topology Size " + str(topology_size))
             plt.savefig(f'plots/time/exp/{topology_size}/time_exponential_dist_statistics_{topology_size}.png')
+        
         # Plot deterministic distribution statistics
         if len(equivalent_lambda_det) != 0:
             plt.boxplot([equivalent_lambda_det, avg_packets_lambda_det],
@@ -555,6 +577,7 @@ class NetworkInput:
                     meanline = True)
             plt.title("Deterministic (Time) Statistics for Topology Size " + str(topology_size))
             plt.savefig(f'plots/time/det/{topology_size}/time_deterministic_dist_statistics_{topology_size}.png')
+        
         # Plot uniform distribution statistics
         if len(equivalent_lambda_uniform) != 0:
             plt.boxplot([equivalent_lambda_uniform, min_packet_lambda, max_packet_lambda],
@@ -563,6 +586,7 @@ class NetworkInput:
                     meanline = True)
             plt.title("Uniform (Time) Statistics for Topology Size " + str(topology_size))
             plt.savefig(f'plots/time/uniform/{topology_size}/time_uniform_dist_statistics_{topology_size}.png')
+        
         # Plot normal distribution statistics
         if len(equivalent_lambda_normal) != 0:
             plt.boxplot([equivalent_lambda_normal, avg_packet_lambda_normal, std_dev_normal],
@@ -571,6 +595,7 @@ class NetworkInput:
                     meanline = True)
             plt.title("Normal (Time) Statistics for Topology Size " + str(topology_size))
             plt.savefig(f'plots/time/normal/{topology_size}/time_normal_dist_statistics_{topology_size}.png')
+        
         # Plot on-off distribution statistics
         if len(equivalent_lambda_onoff) != 0:
             plt.boxplot([equivalent_lambda_onoff, packets_lambda_on, avg_time_off, avg_time_on, exp_max_factor_onoff],
@@ -579,6 +604,7 @@ class NetworkInput:
                     meanline = True)
             plt.title("On-off (Time) Statistics for Topology Size " + str(topology_size))
             plt.savefig(f'plots/time/onoff/{topology_size}/time_onoff_dist_statistics_{topology_size}.png')
+        
         # Plot PPBP distribution statistics
         if len(equivalent_lambda_ppbp) != 0:
             plt.boxplot([equivalent_lambda_ppbp, burst_gen_lambda, bit_rate, pare_min_size, pare_max_size, pare_alpha, exp_max_factor_ppbp],
@@ -632,6 +658,7 @@ class NetworkInput:
                     meanline = True)
             plt.title("Deterministic (Size) Statistics for Topology Size " + str(topology_size))
             plt.savefig(f'plots/size/det/{topology_size}/size_deterministic_dist_statistics_{topology_size}.png')
+        
         # Plot uniform distribution statistics
         if len(avg_packet_size_uniform) != 0:
             plt.boxplot([avg_packet_size_uniform, min_size, max_size],
@@ -640,6 +667,7 @@ class NetworkInput:
                     meanline = True)
             plt.title("Uniform (Size) Statistics for Topology Size " + str(topology_size))
             plt.savefig(f'plots/size/uniform/{topology_size}/size_uniform_dist_statistics_{topology_size}.png')
+        
         # Plot binomial distribution statistics
         if len(avg_packet_size_bi) != 0:
             plt.boxplot([avg_packet_size_bi, packet_size_1, packet_size_2],
@@ -648,6 +676,7 @@ class NetworkInput:
                     meanline = True)
             plt.title("Binomial (Size) Statistics for Topology Size " + str(topology_size))
             plt.savefig(f'plots/size/bi/{topology_size}/size_binomial_dist_statistics_{topology_size}.png')
+        
         # Plot generic distribution statistics
         if len(avg_packet_size_generic) != 0:
             plt.boxplot([avg_packet_size_generic, number_of_candidates],
@@ -704,6 +733,7 @@ TRAINING_PATH = 'training_data\gnnet-ch21-dataset-train\\'
 INPUT_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\input_files.txt'
 TRAFFIC_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\\traffic.txt'
 LINK_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
+GRAPH_FILES = TRAINING_PATH + '25\\graphs\\'
 SIM_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
-dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, SIM_FILE)
-dataset.write_to_csv()
+dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, GRAPH_FILES, SIM_FILE)
+#dataset.write_to_csv()
