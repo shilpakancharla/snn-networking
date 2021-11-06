@@ -8,29 +8,41 @@ from collections import Counter
 from torch.utils.data import Dataset, DataLoader
 
 class NetworkInput:
-    def __init__(self, input_filepath, traffic_filepath, link_filepath, graph_filepath, sim_filepath):
+    def __init__(self, topology_size, input_filepath, traffic_filepath, link_filepath, graph_filepath, sim_filepath):
+        self.topology_size = topology_size
         self.input_filepath = input_filepath
         self.traffic_filepath = traffic_filepath
         self.link_filepath = link_filepath
         self.graph_filepath = graph_filepath
         self.sim_filepath = sim_filepath
         
-        # Data collection
-        self.simulation_numbers, self.routing_matrices = self.process_input_file(self.input_filepath)
+        # Data extraction and collection
+        self.simulation_numbers, routing_matrices = self.process_input_file(self.input_filepath)
+        #self.routes = self.process_routing_matrix(routing_matrices)
         self.max_avg_lambda_list, self.list_of_traffic_measurements = self.get_traffic_metrics(self.traffic_filepath)
         self.global_packets_list, self.global_losses_list, self.global_delay_list, self.metrics_list = self.get_simulation_metrics(self.sim_filepath)
         self.topology_object = self.graph_process(graph_filepath)
         self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
 
+    def process_routing_matrix(self, routing_matrices):
+        for i in range(0, self.topology_size, 1):
+            for j in range(0, self.topology_size, 1):
+                for k in routing_matrices[i][j]:
+                    print(k)
+    """
+
+    """
     def write_to_csv(self):
-        print('Simulation numbers: ', len(self.simulation_numbers))
-        print('Routing matrices: ', len(self.routing_matrices))
+        # Create dataframe
+        frames = []
+        for i in range(0, len(self.metrics_list)):
+            df_temp = pd.DataFrame(self.metrics_list[i])
+            frames.append(df_temp)
+        # Dataframe of metrics data
+        metrics_result_df = pd.concat(frames, ignore_index = True)
+        
         print('Max avg lambda: ', len(self.max_avg_lambda_list))
         print('Traffic measurements: ', len(self.list_of_traffic_measurements))
-        print('Global packets: ', len(self.global_packets_list))
-        print('Global losses: ', len(self.global_losses_list))
-        print('Global delay: ', len(self.metrics_list))
-        print('Metrics list: ', len(self.metrics_list))
         print('Port statistics: ', len(self.port_statistics_list))
     
     """
@@ -248,36 +260,31 @@ class NetworkInput:
                 nodes = line.split(';')
                 nodes = list(map(int, nodes))
                 MatrixPath[nodes[0], nodes[-1]] = nodes
-        return MatrixPath
+        return (MatrixPath)
 
     """
         Create and return a graph readable structure for a specified GML markup.
 
         @param filepath: directory of GML markup files for a topology size
-        @return graph structure
+        @return graph structure with information about nodes and edges
     """
     def graph_process(self, filepath):
         graphs_dictionary = dict()
         for topology_file in os.listdir(filepath):
             G = networkx.read_gml(filepath + '/' + topology_file, destringizer = int)
+            #networkx.draw(G, with_labels = True, font_weight = 'bold')
             graphs_dictionary[topology_file] = G
             # Nodes of graph
             nodes = G.nodes
             # Topology edges
-            edges = G.edges
+            edges = G.edges # Returns list of tuples describing topology edges
             # Information parameters related to a node
             for i in nodes:
-                queue_sizes = nodes[i]['queueSizes']
-                scheduling_policy = nodes[i]['schedulingPolicy']
-                levelsQoS = nodes[i]['levelsQoS']
-            for i in edges:
-                source = edges[i]['source']
-                target = edges[i]['target']
-                key = edges[i]['key']
-                port = edges[i]['port']
-                weight = edges[i]['weight']
-                bandwidth = edges[i]['bandwidth']
-        return G
+                graphs_dictionary[i] = nodes[i]
+            # Information about link parameters
+            for i in edges: # (src node ID, dest node ID, link ID)
+                graphs_dictionary[i] = G[i[0]][i[1]][0]
+        return graphs_dictionary
     
     """
         Given a simulation metrics file, extract information about the global packets, global losses, global delays, and
@@ -301,15 +308,15 @@ class NetworkInput:
             global_packets = measurement_tokens[0] # Get global packets value
             global_packets_list.append(global_packets)
             measurement_tokens.remove(global_packets) # Remove value once finished
-            global_losses = measurement_tokens[1] # Get global losses value
+            global_losses = measurement_tokens[0] # Get global losses value
             global_losses_list.append(global_losses)
             measurement_tokens.remove(global_losses) # Remove value once finished
-            global_delay_temp = measurement_tokens[2] # Get global delay value and modify
+            global_delay_temp = measurement_tokens[0] # Get global delay value and modify
             bar_index = global_delay_temp.find('|')
             global_delay = global_delay_temp[0:bar_index]
             global_delay_list.append(global_delay)
 
-            metrics_list_ = self.get_traffic_measurementss(global_delay, measurement_tokens) # Get the rest of the list metrics
+            metrics_list_ = self.get_traffic_measurements(global_packets, global_losses, global_delay, measurement_tokens) # Get the rest of the list metrics
             metrics_list.append(metrics_list_)
         
         sim_file.close() # Close the file once done processing
@@ -322,7 +329,7 @@ class NetworkInput:
         @param measurement_tokens: array of metrics that are separated by '|' and ';'
         @return list of dictionaries of metrics
     """
-    def get_traffic_measurementss(self, global_delay, measurement_tokens):
+    def get_traffic_measurements(self, global_packet, global_loss, global_delay, measurement_tokens):
         metrics_list = []
         modified_measurements = self.modify_tokens(measurement_tokens)  
         if global_delay in modified_measurements:
@@ -332,6 +339,10 @@ class NetworkInput:
         while (counter < len(modified_measurements)):
             metric_aggregated_dictionary = dict() # Re-initialize dictionary to hold the metrics
             for i in range(0, 11, len(modified_measurements)):
+                # Add global values
+                metric_aggregated_dictionary['Global Packet'] = global_packet
+                metric_aggregated_dictionary['Global Loss'] = global_loss
+                metric_aggregated_dictionary['Global Delay'] = global_delay
                 # Bandwidth
                 bandwidth = modified_measurements[i]
                 metric_aggregated_dictionary['Average Bandwidth'] = bandwidth
@@ -735,5 +746,5 @@ TRAFFIC_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-200
 LINK_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
 GRAPH_FILES = TRAINING_PATH + '25\\graphs\\'
 SIM_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
-dataset = NetworkInput(INPUT_FILE, TRAFFIC_FILE, LINK_FILE, GRAPH_FILES, SIM_FILE)
-#dataset.write_to_csv()
+dataset = NetworkInput(25, INPUT_FILE, TRAFFIC_FILE, LINK_FILE, GRAPH_FILES, SIM_FILE)
+dataset.write_to_csv()
