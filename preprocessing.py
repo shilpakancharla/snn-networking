@@ -1,4 +1,5 @@
-import os 
+import os
+import copy
 import tarfile 
 import networkx
 import numpy as np
@@ -41,11 +42,40 @@ class NetworkInput:
         # Dataframe of simulationResults.txt
         metrics_result_df = pd.concat(frames_metrics, ignore_index = True)
 
-        # Processing data from traffic.txt
+        # Dataframe of traffic.txt
+        d = {
+            "1278.1": {"Time Distribution": "Exponential", 
+                "Time Distribution Parameters": {"Equivalent Lambda": 950.486, "Average Packet Lambda": 0.950486, "Exponential Max Factor": 10.0
+                    }, 
+                "Size Distribution": "Binomial",
+                "Size Distribution Parameters": {"Average Packet Size": 1000.0, "Packet Size 1": 300.0, "Packet Size 2": 1700.0
+                    }
+                }
+            }
 
-        print('Traffic measurements: ', len(self.list_of_traffic_measurements))
-        print('Port statistics: ', len(self.port_statistics_list))
-    
+        # Convert to list to get keys(max avg lambdas)
+        max_avg_lambdas = list(d)
+        list_of_dicts = []
+
+        # If there are more than 1 keys iterate and create new dict
+        for max_avg_lambda in max_avg_lambdas:
+            # Create new key/value pair of the max avg lambda inside of Time dist parameters
+            d[max_avg_lambda]["Time Distribution Parameters"]["Max Avg Lambda"] = max_avg_lambda
+
+            # Create a new dict with contents of max_avg_lambda key dict
+            fixed_dict = copy.deepcopy(d[max_avg_lambda])
+
+            # Append dict to a list of dicts
+            list_of_dicts.append(fixed_dict)
+
+        for info_dict in list_of_dicts:
+            df = pd.DataFrame(info_dict)
+
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                print(df)
+
+        print(fixed_dict)
+
     """
         Return the traffic metrics as a dictionary with the maximum average lambda value as the key and the
         metrics for each simulation as values. 
