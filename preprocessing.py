@@ -19,7 +19,7 @@ class NetworkInput:
         # Data extraction and collection
         self.simulation_numbers, routing_matrices = self.process_input_file(self.input_filepath)
         #self.routes = self.process_routing_matrix(routing_matrices)
-        self.max_avg_lambda_list, self.list_of_traffic_measurements = self.get_traffic_metrics(self.traffic_filepath)
+        self.list_of_traffic_measurements = self.get_traffic_metrics(self.traffic_filepath)
         self.global_packets_list, self.global_losses_list, self.global_delay_list, self.metrics_list = self.get_simulation_metrics(self.sim_filepath)
         self.topology_object = self.graph_process(graph_filepath)
         self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
@@ -33,15 +33,16 @@ class NetworkInput:
 
     """
     def write_to_csv(self):
-        # Create dataframe
-        frames = []
+        # Processing data from simulationResults.txt
+        frames_metrics = []
         for i in range(0, len(self.metrics_list)):
             df_temp = pd.DataFrame(self.metrics_list[i])
-            frames.append(df_temp)
-        # Dataframe of metrics data
-        metrics_result_df = pd.concat(frames, ignore_index = True)
-        
-        print('Max avg lambda: ', len(self.max_avg_lambda_list))
+            frames_metrics.append(df_temp)
+        # Dataframe of simulationResults.txt
+        metrics_result_df = pd.concat(frames_metrics, ignore_index = True)
+
+        # Processing data from traffic.txt
+
         print('Traffic measurements: ', len(self.list_of_traffic_measurements))
         print('Port statistics: ', len(self.port_statistics_list))
     
@@ -50,7 +51,6 @@ class NetworkInput:
         metrics for each simulation as values. 
 
         @param filepath: traffic file for simulation
-        @return list of maximum average lambda values
         @return list of traffic measurements with description of time and size distribution parameters
     """
     def get_traffic_metrics(self, filepath):
@@ -79,23 +79,33 @@ class NetworkInput:
                             tokens_.append(r)
                     max_avg_lambda_list.append(max_avg_lambda)
                     traffic_measurements.append(tokens_)
-        
+
         traffic_file.close() # Close file once done processing
         traffic_measurements_modified = [x for x in traffic_measurements if x != ['']] # Remove empty lists from list
-        
-        # Get the time and size distribution parameters
-        list_of_traffic_measurements = []
-        for traffic_measurement in traffic_measurements_modified:
-            length = len(traffic_measurement)
-            traffic_dictionary = dict()
-            for i in range(length):
-                offset = self.create_traffic_time_distribution(traffic_measurement, traffic_dictionary)
-                if offset != -1: # Go through this loop if we have a valid offset
-                    self.create_traffic_size_distribution(traffic_measurement, offset, traffic_dictionary)
-                if (len(traffic_dictionary.keys()) != 0):
-                    list_of_traffic_measurements.append(traffic_dictionary)
 
-        return max_avg_lambda_list, list_of_traffic_measurements
+        # Match up the max avg lambda value with the tokens using list comprehension
+        list_dict_with_max_lambda = []
+        for m, t in zip(max_avg_lambda_list, traffic_measurements_modified):
+            match_dict = dict()
+            t_parameterized = self.get_time_size_distribution_parameters(t)
+            match_dict[m] = t_parameterized 
+            list_dict_with_max_lambda.append(match_dict)
+
+        return list_dict_with_max_lambda
+
+    """
+        Get and process the time and size distribution parameters.
+
+        @param traffic_measurement: traffic measurement to process
+        @return dictionary of traffic measurement with appropriate time and size distribution parameters
+    """
+    def get_time_size_distribution_parameters(self, traffic_measurement):
+        traffic_dictionary = dict()
+        for i in range(len(traffic_measurement)):
+            offset = self.create_traffic_time_distribution(traffic_measurement, traffic_dictionary)
+            if offset != -1: # Go through this loop if we have a valid offset
+                self.create_traffic_size_distribution(traffic_measurement, offset, traffic_dictionary)
+        return traffic_dictionary
 
     """
         Fill out dictionary with traffic time distribution metrics and return the offset of where to read size distribution parameters.
