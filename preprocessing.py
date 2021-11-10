@@ -1,5 +1,4 @@
 import os
-import copy
 import tarfile 
 import networkx
 import numpy as np
@@ -31,7 +30,7 @@ class NetworkInput:
                 for k in routing_matrices[i][j]:
                     print(k)
     """
-
+        Converting data collected and processed from simulationResults.txt and traffic.txt to dataframes, which are then converted to .csv files.
     """
     def write_to_csv(self):
         # Processing data from simulationResults.txt
@@ -39,42 +38,29 @@ class NetworkInput:
         for i in range(0, len(self.metrics_list)):
             df_temp = pd.DataFrame(self.metrics_list[i])
             frames_metrics.append(df_temp)
-        # Dataframe of simulationResults.txt
+        
+        # Dataframe of simulationResults.txt - concatenation
         metrics_result_df = pd.concat(frames_metrics, ignore_index = True)
 
-        # Dataframe of traffic.txt
-        d = {
-            "1278.1": {"Time Distribution": "Exponential", 
-                "Time Distribution Parameters": {"Equivalent Lambda": 950.486, "Average Packet Lambda": 0.950486, "Exponential Max Factor": 10.0
-                    }, 
-                "Size Distribution": "Binomial",
-                "Size Distribution Parameters": {"Average Packet Size": 1000.0, "Packet Size 1": 300.0, "Packet Size 2": 1700.0
-                    }
-                }
-            }
+        # Processing data from traffic.txt
+        frames_traffic = []
+        for data in self.list_of_traffic_measurements:
+            for key in data:
+                if not data[key]: # Do not include empty dictionaries in dataframe
+                    break
+                # Read dataframe with max avg lambda as index, then reset index to column
+                df_temp = pd.DataFrame.from_dict(data, orient = 'index').reset_index().rename(columns = {'index': 'Max Avg Lambda'})
+                
+                # Flatten the time distribution parameters and size distribution parameters, join with dataframe
+                df_temp = df_temp.join(pd.json_normalize(df_temp['Time Distribution Parameters']))
+                df_temp = df_temp.join(pd.json_normalize(df_temp['Size Distribution Parameters']))
 
-        # Convert to list to get keys(max avg lambdas)
-        max_avg_lambdas = list(d)
-        list_of_dicts = []
+                # Remove redundant columns
+                df_temp = df_temp.drop(columns = ['Time Distribution Parameters', 'Size Distribution Parameters'])
+                frames_traffic.append(df_temp)
 
-        # If there are more than 1 keys iterate and create new dict
-        for max_avg_lambda in max_avg_lambdas:
-            # Create new key/value pair of the max avg lambda inside of Time dist parameters
-            d[max_avg_lambda]["Time Distribution Parameters"]["Max Avg Lambda"] = max_avg_lambda
-
-            # Create a new dict with contents of max_avg_lambda key dict
-            fixed_dict = copy.deepcopy(d[max_avg_lambda])
-
-            # Append dict to a list of dicts
-            list_of_dicts.append(fixed_dict)
-
-        for info_dict in list_of_dicts:
-            df = pd.DataFrame(info_dict)
-
-            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-                print(df)
-
-        print(fixed_dict)
+        # Dataframe of traffic.txt = concatenation
+        traffic_result_df = pd.concat(frames_traffic, ignore_index = True)
 
     """
         Return the traffic metrics as a dictionary with the maximum average lambda value as the key and the
