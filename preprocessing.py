@@ -8,13 +8,38 @@ from collections import Counter
 from torch.utils.data import Dataset, DataLoader
 
 class NetworkInput:
-    def __init__(self, topology_size, input_filepath, traffic_filepath, link_filepath, graph_filepath, sim_filepath):
+    """
+        Parameters in NetworkInput class (used for data processing):
+
+        1. topology_size: Size of network.
+        2. input_filepath: Contains simulation number, the topology file, and the routing file used for that simulation.
+        3. traffic_filepath: Contains the traffic parameters used by the simulator to generate the traffic for each iteration
+        4. link_filepath: Denotes if there is link between each src-dst pair. If there link exists, it contains the outgoing 
+                        port statistics separated by comma (,) or -1 otherwise.
+        5. graph_filepath:
+        6. sim_filepath: Contains the measurements obtained by our network simulator for every sample.
+        7. output_name:
+
+        Create the following objects from input data:
+
+        1. simulation_numbers:
+        2. list_of_traffic_measurements:
+        3. global_packets_list:
+        4. global_losses_list:
+        5. global_delay_list:
+        6. metrics_list:
+        7. topology_object:
+        8. port_statistics_list:
+    """
+    def __init__(self, topology_size, input_filepath, traffic_filepath, link_filepath, 
+                graph_filepath, sim_filepath, output_name):
         self.topology_size = topology_size
         self.input_filepath = input_filepath
         self.traffic_filepath = traffic_filepath
         self.link_filepath = link_filepath
         self.graph_filepath = graph_filepath
         self.sim_filepath = sim_filepath
+        self.output_name = output_name
         
         # Data extraction and collection
         self.simulation_numbers, routing_matrices = self.process_input_file(self.input_filepath)
@@ -95,10 +120,13 @@ class NetworkInput:
         df_port_mod = df_port.drop(labels = dropped_idx, axis = 0).reset_index()
         metrics_result_df_mod = metrics_result_df.drop(labels = dropped_idx, axis = 0).reset_index()
 
-        # Compile the dataframes together
-        print("Length of port dataframe: ", len(df_port_mod.index))
-        print("Length of traffic dataframe: ", len(traffic_result_df))
-        print("Length of metrics dataframe: ", len(metrics_result_df_mod))
+        # Join the dataframes together
+        frames = [metrics_result_df_mod, traffic_result_df, df_port_mod]
+        df_features_truth = pd.concat(frames, axis = 1).drop(['index'], axis = 1)
+
+        # Create .csv file, place in tabular_data folder
+        filename = 'tabular_data/' + str(self.topology_size) + '/' + self.output_name + '.csv'
+        df_features_truth.to_csv(filename, index = False)
 
     """
         Return the traffic metrics as a dictionary with the maximum average lambda value as the key and the
@@ -809,5 +837,6 @@ TRAFFIC_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-200
 LINK_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
 GRAPH_FILES = TRAINING_PATH + '25\\graphs\\'
 SIM_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
-dataset = NetworkInput(25, INPUT_FILE, TRAFFIC_FILE, LINK_FILE, GRAPH_FILES, SIM_FILE)
+OUTPUT_NAME = 'results_25_400-2000_0_24'
+dataset = NetworkInput(25, INPUT_FILE, TRAFFIC_FILE, LINK_FILE, GRAPH_FILES, SIM_FILE, OUTPUT_NAME)
 dataset.write_to_csv()

@@ -3,3 +3,4 @@ validation_data/
 test_data/
 __pycache__/
 plots/
+tabular_data/
