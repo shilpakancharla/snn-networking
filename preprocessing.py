@@ -30,7 +30,8 @@ class NetworkInput:
                 for k in routing_matrices[i][j]:
                     print(k)
     """
-        Converting data collected and processed from simulationResults.txt and traffic.txt to dataframes, which are then converted to .csv files.
+        Converting data collected and processed from simulationResults.txt, traffic.txt, and linkUsage.txt to dataframes, which are then 
+        converted to .csv files.
     """
     def write_to_csv(self):
         # Processing data from simulationResults.txt
@@ -59,8 +60,19 @@ class NetworkInput:
                 df_temp = df_temp.drop(columns = ['Time Distribution Parameters', 'Size Distribution Parameters'])
                 frames_traffic.append(df_temp)
 
-        # Dataframe of traffic.txt = concatenation
+        # Dataframe of traffic.txt - concatenation
         traffic_result_df = pd.concat(frames_traffic, ignore_index = True)
+
+        # Processing data from linkUsage.txt, dataframe of linkUsage.txt
+        df_port = pd.DataFrame(self.port_statistics_list, columns = ['Link Exists', 
+                                                                'Avg Utilization', 
+                                                                'Avg Packet Loss',
+                                                                'Avg Packet Length',
+                                                                'Avg Utilization First',
+                                                                'Avg Packet Loss Rate',
+                                                                'Avg Port Occupancy',
+                                                                'Max Queue Occupancy',
+                                                                'Avg Packet Length First'])
 
     """
         Return the traffic metrics as a dictionary with the maximum average lambda value as the key and the
