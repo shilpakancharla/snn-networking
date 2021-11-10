@@ -24,11 +24,24 @@ class NetworkInput:
         self.topology_object = self.graph_process(graph_filepath)
         self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
 
+    """
+        Create an adjacency matrix from the routing matrices.
+
+        @param routing_matrices: MatrixPath structure of routing information
+        @return adjacency matrix of routes
+    """
     def process_routing_matrix(self, routing_matrices):
+        adj_matrix = np.zeros(())
         for i in range(0, self.topology_size, 1):
             for j in range(0, self.topology_size, 1):
                 for k in routing_matrices[i][j]:
-                    print(k)
+                    if k:
+                        # Populate the adjacency matrix
+                        src = k[0]
+                        dest = k[-1]
+                        route = k[1:-1]
+        return None
+
     """
         Converting data collected and processed from simulationResults.txt, traffic.txt, and linkUsage.txt to dataframes, which are then 
         converted to .csv files.
@@ -42,7 +55,7 @@ class NetworkInput:
         
         # Dataframe of simulationResults.txt - concatenation
         metrics_result_df = pd.concat(frames_metrics, ignore_index = True)
-
+        
         # Processing data from traffic.txt
         frames_traffic = []
         for data in self.list_of_traffic_measurements:
@@ -73,6 +86,11 @@ class NetworkInput:
                                                                 'Avg Port Occupancy',
                                                                 'Max Queue Occupancy',
                                                                 'Avg Packet Length First'])
+
+        # Compile the dataframes together
+        #print("Length of port dataframe: ", len(df_port.index))
+        #print("Length of traffic dataframe: ", len(traffic_result_df))
+        #print("Length of metrics dataframe: ", len(metrics_result_df))
 
     """
         Return the traffic metrics as a dictionary with the maximum average lambda value as the key and the
@@ -358,6 +376,7 @@ class NetworkInput:
             metrics_list.append(metrics_list_)
         
         sim_file.close() # Close the file once done processing
+        print(metrics_list)
         return global_packets_list, global_losses_list, global_delay_list, metrics_list
 
     """
@@ -372,50 +391,48 @@ class NetworkInput:
         modified_measurements = self.modify_tokens(measurement_tokens)  
         if global_delay in modified_measurements:
             modified_measurements.remove(global_delay)  
+        
         # Get the rest of the simulation tokens
-        counter = 0
-        while (counter < len(modified_measurements)):
+        for i in range(0, len(modified_measurements) - 11, 11):
             metric_aggregated_dictionary = dict() # Re-initialize dictionary to hold the metrics
-            for i in range(0, 11, len(modified_measurements)):
-                # Add global values
-                metric_aggregated_dictionary['Global Packet'] = global_packet
-                metric_aggregated_dictionary['Global Loss'] = global_loss
-                metric_aggregated_dictionary['Global Delay'] = global_delay
-                # Bandwidth
-                bandwidth = modified_measurements[i]
-                metric_aggregated_dictionary['Average Bandwidth'] = bandwidth
-                # Number of packets transmitted
-                number_packets_transmitted = modified_measurements[i + 1]
-                metric_aggregated_dictionary['Packets Transmitted'] = number_packets_transmitted
-                # Number of packets dropped
-                number_packets_dropped = modified_measurements[i + 2]
-                metric_aggregated_dictionary['Packets Dropped'] = number_packets_dropped 
-                # Average per-packet delay
-                avg_delay = modified_measurements[i + 3]
-                metric_aggregated_dictionary['Average Per-Packet Delay'] = avg_delay
-                # Neperian logarithm of per-packet delay
-                neperian_logarithm = modified_measurements[i + 4]
-                metric_aggregated_dictionary['Neperian Logarithm'] = neperian_logarithm
-                # Percentile 10 of per-packet delay
-                percentile_10 = modified_measurements[i + 5]
-                metric_aggregated_dictionary['Percentile 10'] = percentile_10 
-                # Percentile 20 of per-packet delay
-                percentile_20 = modified_measurements[i + 6]
-                metric_aggregated_dictionary['Percentile 20'] = percentile_20 
-                # Percentile 50 of per-packet delay
-                percentile_50 = modified_measurements[i + 7]
-                metric_aggregated_dictionary['Percentile 50'] = percentile_50
-                # Percentile 80 of per-packet delay
-                percentile_80 = modified_measurements[i + 8]
-                metric_aggregated_dictionary['Percentile 80'] = percentile_80 
-                # Percentile 90 of per-packet delay
-                percentile_90 = modified_measurements[i + 9]
-                metric_aggregated_dictionary['Percentile 90'] = percentile_90 
-                # Variance of per-packet delay (jitter)
-                variance_delay = modified_measurements[i + 10]
-                metric_aggregated_dictionary['Jitter'] = variance_delay
-            
-            counter = counter + 1 # Increment counter
+            # Add global values
+            metric_aggregated_dictionary['Global Packet'] = global_packet
+            metric_aggregated_dictionary['Global Loss'] = global_loss
+            metric_aggregated_dictionary['Global Delay'] = global_delay
+            # Bandwidth
+            bandwidth = modified_measurements[i]
+            metric_aggregated_dictionary['Average Bandwidth'] = bandwidth
+            # Number of packets transmitted
+            number_packets_transmitted = modified_measurements[i + 1]
+            metric_aggregated_dictionary['Packets Transmitted'] = number_packets_transmitted
+            # Number of packets dropped
+            number_packets_dropped = modified_measurements[i + 2]
+            metric_aggregated_dictionary['Packets Dropped'] = number_packets_dropped
+            # Average per-packet delay
+            avg_delay = modified_measurements[i + 3]
+            metric_aggregated_dictionary['Average Per-Packet Delay'] = avg_delay
+            # Neperian logarithm of per-packet delay
+            neperian_logarithm = modified_measurements[i + 4]
+            metric_aggregated_dictionary['Neperian Logarithm'] = neperian_logarithm
+            # Percentile 10 of per-packet delay
+            percentile_10 = modified_measurements[i + 5]
+            metric_aggregated_dictionary['Percentile 10'] = percentile_10
+            # Percentile 20 of per-packet delay
+            percentile_20 = modified_measurements[i + 6]
+            metric_aggregated_dictionary['Percentile 20'] = percentile_20
+            # Percentile 50 of per-packet delay
+            percentile_50 = modified_measurements[i + 7]
+            metric_aggregated_dictionary['Percentile 50'] = percentile_50
+            # Percentile 80 of per-packet delay
+            percentile_80 = modified_measurements[i + 8]
+            metric_aggregated_dictionary['Percentile 80'] = percentile_80
+            # Percentile 90 of per-packet delay
+            percentile_90 = modified_measurements[i + 9]
+            metric_aggregated_dictionary['Percentile 90'] = percentile_90
+            # Variance of per-packet delay (jitter)
+            variance_delay = modified_measurements[i + 10]
+            metric_aggregated_dictionary['Jitter'] = variance_delay
+
             metrics_list.append(metric_aggregated_dictionary) # Append to master list of metrics
 
         return metrics_list
