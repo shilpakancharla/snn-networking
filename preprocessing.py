@@ -55,12 +55,16 @@ class NetworkInput:
         
         # Dataframe of simulationResults.txt - concatenation
         metrics_result_df = pd.concat(frames_metrics, ignore_index = True)
-        
+
         # Processing data from traffic.txt
         frames_traffic = []
+        dropped_idx = [] # Keep track of the dropped indices
+        counter = 0
         for data in self.list_of_traffic_measurements:
             for key in data:
+                counter = counter + 1
                 if not data[key]: # Do not include empty dictionaries in dataframe
+                    dropped_idx.append(counter - 1) # Index the keys of the dictionary
                     break
                 # Read dataframe with max avg lambda as index, then reset index to column
                 df_temp = pd.DataFrame.from_dict(data, orient = 'index').reset_index().rename(columns = {'index': 'Max Avg Lambda'})
@@ -87,10 +91,14 @@ class NetworkInput:
                                                                 'Max Queue Occupancy',
                                                                 'Avg Packet Length First'])
 
+        # Drop the indices of the unmatched frames for port and metrics dataframes
+        df_port_mod = df_port.drop(labels = dropped_idx, axis = 0).reset_index()
+        metrics_result_df_mod = metrics_result_df.drop(labels = dropped_idx, axis = 0).reset_index()
+
         # Compile the dataframes together
-        #print("Length of port dataframe: ", len(df_port.index))
-        #print("Length of traffic dataframe: ", len(traffic_result_df))
-        #print("Length of metrics dataframe: ", len(metrics_result_df))
+        print("Length of port dataframe: ", len(df_port_mod.index))
+        print("Length of traffic dataframe: ", len(traffic_result_df))
+        print("Length of metrics dataframe: ", len(metrics_result_df_mod))
 
     """
         Return the traffic metrics as a dictionary with the maximum average lambda value as the key and the
@@ -376,7 +384,7 @@ class NetworkInput:
             metrics_list.append(metrics_list_)
         
         sim_file.close() # Close the file once done processing
-        print(metrics_list)
+
         return global_packets_list, global_losses_list, global_delay_list, metrics_list
 
     """
