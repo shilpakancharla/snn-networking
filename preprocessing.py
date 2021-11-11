@@ -1,4 +1,5 @@
 import os
+import re
 import tarfile 
 import networkx
 import numpy as np
@@ -10,29 +11,31 @@ from torch.utils.data import Dataset, DataLoader
 class NetworkInput:
     """
         Parameters in NetworkInput class (used for data processing):
-
-        1. topology_size: Size of network.
-        2. input_filepath: Contains simulation number, the topology file, and the routing file used for that simulation.
-        3. traffic_filepath: Contains the traffic parameters used by the simulator to generate the traffic for each iteration
-        4. link_filepath: Denotes if there is link between each src-dst pair. If there link exists, it contains the outgoing 
+        
+        1. data_directory: specifies if training, validation, or test directory is in use
+        2. topology_size: Size of network.
+        3. input_filepath: Contains simulation number, the topology file, and the routing file used for that simulation.
+        4. traffic_filepath: Contains the traffic parameters used by the simulator to generate the traffic for each iteration
+        5. link_filepath: Denotes if there is link between each src-dst pair. If there link exists, it contains the outgoing 
                         port statistics separated by comma (,) or -1 otherwise.
-        5. graph_filepath:
-        6. sim_filepath: Contains the measurements obtained by our network simulator for every sample.
-        7. output_name:
+        6. graph_filepath: directory of graph files
+        7. sim_filepath: Contains the measurements obtained by our network simulator for every sample.
+        8. output_name: output name of .csv file
 
         Create the following objects from input data:
 
-        1. simulation_numbers:
-        2. list_of_traffic_measurements:
-        3. global_packets_list:
-        4. global_losses_list:
-        5. global_delay_list:
-        6. metrics_list:
-        7. topology_object:
-        8. port_statistics_list:
+        1. simulation_numbers
+        2. list_of_traffic_measurements
+        3. global_packets_list
+        4. global_losses_list
+        5. global_delay_list
+        6. metrics_list
+        7. topology_object
+        8. port_statistics_list
     """
-    def __init__(self, topology_size, input_filepath, traffic_filepath, link_filepath, 
+    def __init__(self, data_directory, topology_size, input_filepath, traffic_filepath, link_filepath, 
                 graph_filepath, sim_filepath, output_name):
+        self.data_directory = data_directory
         self.topology_size = topology_size
         self.input_filepath = input_filepath
         self.traffic_filepath = traffic_filepath
@@ -317,11 +320,11 @@ class NetworkInput:
         sim_numbers = []
         graph_files = []
         routing_files = []
-        net_size = filepath.replace('training_data\gnnet-ch21-dataset-train\\', '')[0:2]
+        net_size = filepath.replace(self.data_directory, '')[0:2]
         for line in input_file:
             input_data = line.split(';')
             sim_numbers.append(input_data[0])
-            filepath_stem = 'training_data\gnnet-ch21-dataset-train\\'
+            filepath_stem = self.data_directory
             graph_file = filepath_stem + net_size + '\graphs\\' + input_data[1]
             graph_files.append(graph_file)
             routing_file = (filepath_stem + net_size + '\\routings\\' + input_data[2]).rstrip()
@@ -830,13 +833,63 @@ def extract_all_in_filepath(main_filepath):
             extraction_progress = extraction_progress + 1
             print("Unzipped " + str(extraction_progress) + " out of " + str(files_length) + " files.")
 
+def process_data(data_directory):
+    # Iterate through directories, subdirectories, and files for training dataset
+    for root, directories, file_list in os.walk(data_directory):
+        topology_size = None # Get the network topology size
+        input_file = None # Get the input filepath
+        traffic_file = None # Get the traffic filepath
+        link_file = None # Get the link usage filepath
+        sim_file = None # Get the simulation results filepath
+        output_name = None # Get the name of the .csv file to be created
+        
+        try:
+            topology_size = int(root.replace(data_directory, "")[0:2])
+            graph_files = data_directory + str(topology_size) + '\\graphs\\' # Get route to graph files directory
+            
+            for name in file_list: # Retrieve the rest of the files
+                file_name = os.path.join(root, name)
+                if 'input_files.txt' in file_name.strip():
+                    input_file = file_name
+                    token_list = file_name.split('\\')
+                    output_name = token_list[3]
+                elif 'traffic.txt' in file_name.strip():
+                    traffic_file = file_name
+                elif 'linkUsage.txt' in file_name.strip():
+                    link_file = file_name
+                elif 'simulationResults.txt' in file_name.strip():
+                    sim_file = file_name
+
+                if None not in (topology_size, input_file, traffic_file, link_file, graph_files, sim_file, output_name):
+                    # Check to see if file already exists. If it does, skip processing this section of data.
+                    if os.path.isfile('tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'):
+                        print(output_name + '.csv already exists.')
+                        continue
+                    # Create the NetworkInput object if the .csv file does not exist for that section of data.
+                    else:
+                        print("Creating NetworkInput object.")
+                        dataset = NetworkInput(data_directory, 
+                                            topology_size, 
+                                            input_file, 
+                                            traffic_file, 
+                                            link_file, 
+                                            graph_files, 
+                                            sim_file, 
+                                            output_name)
+                        print("Creating " + output_name + ".csv.")
+                        dataset.write_to_csv()
+                        print("Finished creating " + output_name + ".csv.")
+        except ValueError:
+            print("Empty string encountered. Continuing data processing.")
+        except TypeError:
+            print("NoneType encountered. Continuing data processing.")
+
 # Driver code
-TRAINING_PATH = 'training_data\gnnet-ch21-dataset-train\\'
-INPUT_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\input_files.txt'
-TRAFFIC_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\\traffic.txt'
-LINK_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\linkUsage.txt'
-GRAPH_FILES = TRAINING_PATH + '25\\graphs\\'
-SIM_FILE = TRAINING_PATH + '25\\results_25_400-2000_0_24\\results_25_400-2000_0_24\simulationResults.txt'
-OUTPUT_NAME = 'results_25_400-2000_0_24'
-dataset = NetworkInput(25, INPUT_FILE, TRAFFIC_FILE, LINK_FILE, GRAPH_FILES, SIM_FILE, OUTPUT_NAME)
-dataset.write_to_csv()
+if __name__ == "__main__":
+    TRAINING_PATH = 'training_data\gnnet-ch21-dataset-train\\'
+    VALIDATION_PATH = 'validation_data\gnnet-ch21-dataset-validation\\'
+
+    process_data(TRAINING_PATH)
+    process_data(VALIDATION_PATH)
+    
+    
