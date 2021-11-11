@@ -1,5 +1,4 @@
 import os
-import re
 import tarfile 
 import networkx
 import numpy as np
@@ -890,6 +889,4 @@ if __name__ == "__main__":
     VALIDATION_PATH = 'validation_data\gnnet-ch21-dataset-validation\\'
 
     process_data(TRAINING_PATH)
-    process_data(VALIDATION_PATH)
-    
-    
+    process_data(VALIDATION_PATH)    
