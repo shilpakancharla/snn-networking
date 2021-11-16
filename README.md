@@ -81,7 +81,7 @@ For each src-dst pair, if there is a link between them, it contains the outgoing
 
 ## Preprocessing
 
-The script `preprocessing.py` is used on unzipped data files. A `NetworkInput` object is created with various data structures. Currently, getting information about the routes present in the dataset is still a work in progress. However, we are able to extract information about the traffic measurements, simulation results, and the port statistics. In particular, the following methods are used to generate each of these data structures:
+The script `preprocessing.py` is used on unzipped data files. A `NetworkInput` object is created with various data structures. Currently, getting information about the routes present in the dataset is still a work in progress. However, we are able to extract information about the traffic measurements, simulation results, and the link usage. This information is organized into a dataframe, and then written as a .csv file. In particular, the following methods are used to generate each of these data structures:
 
 ### Traffic measurements
 
@@ -105,3 +105,19 @@ The traffic measurements data structure is formatted as a triply nested dictiona
 * `create_traffic_size_distribution`: fill out the dictionary with size distribution metrics.
 
 * `get_max_avg_lambda`: process the string with the maximum average lambda value and retrieve that value for the corresponding dictionary. 
+
+## Simulation Results
+
+The simulation results data structure is formatted as a list of lists of dictionaries.
+
+* `get_simulation_metrics`: extract information about global packets, global losses, global delays, and simulation metric results. 
+
+* `create_simulation_list`: extract the individual simulation results, populate the dictionary, and append them to the array.
+
+* `modify_tokens`: modifies the measurement tokens list so that are no '|' or ';' present, but all tokens are separated and present. 
+
+## Link Usage
+
+The link usage are organized as a list structure.
+
+* `get_link_usage_metrics`: given a link usage file, extract information about various metrics present. If a link does not exist, populate the list of metrics with all -1. 

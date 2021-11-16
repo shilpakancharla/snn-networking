@@ -410,7 +410,7 @@ class NetworkInput:
             global_delay = global_delay_temp[0:bar_index]
             global_delay_list.append(global_delay)
 
-            metrics_list_ = self.get_traffic_measurements(global_packets, global_losses, global_delay, measurement_tokens) # Get the rest of the list metrics
+            metrics_list_ = self.create_simulation_list(global_packets, global_losses, global_delay, measurement_tokens) # Get the rest of the list metrics
             metrics_list.append(metrics_list_)
         
         sim_file.close() # Close the file once done processing
@@ -424,7 +424,7 @@ class NetworkInput:
         @param measurement_tokens: array of metrics that are separated by '|' and ';'
         @return list of dictionaries of metrics
     """
-    def get_traffic_measurements(self, global_packet, global_loss, global_delay, measurement_tokens):
+    def create_simulation_list(self, global_packet, global_loss, global_delay, measurement_tokens):
         metrics_list = []
         modified_measurements = self.modify_tokens(measurement_tokens)  
         if global_delay in modified_measurements:
