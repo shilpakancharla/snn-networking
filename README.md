@@ -106,7 +106,7 @@ The traffic measurements data structure is formatted as a triply nested dictiona
 
 * `get_max_avg_lambda`: process the string with the maximum average lambda value and retrieve that value for the corresponding dictionary. 
 
-## Simulation Results
+### Simulation Results
 
 The simulation results data structure is formatted as a list of lists of dictionaries.
 
@@ -116,7 +116,7 @@ The simulation results data structure is formatted as a list of lists of diction
 
 * `modify_tokens`: modifies the measurement tokens list so that are no '|' or ';' present, but all tokens are separated and present. 
 
-## Link Usage
+### Link Usage
 
 The link usage are organized as a list structure.
 
