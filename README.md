@@ -78,3 +78,30 @@ For each src-dst pair, if there is a link between them, it contains the outgoing
 6. Average port occupancy (service and waiting queue) of the first queue of the outgoing port.
 7. Maximum queue occupancy of the first queue of the outgoing port.
 8. Average packet length of the packets transmitted through the first queue of the outgoing port.
+
+## Preprocessing
+
+The script `preprocessing.py` is used on unzipped data files. A `NetworkInput` object is created with various data structures. Currently, getting information about the routes present in the dataset is still a work in progress. However, we are able to extract information about the traffic measurements, simulation results, and the port statistics. In particular, the following methods are used to generate each of these data structures:
+
+### Traffic measurements
+
+The traffic measurements data structure is formatted as a triply nested dictionary in the following format:
+
+````
+{Max Average Lambda: {Time Distribution: <time distribution name>,
+                    Time Distribution Parameters: {...},
+                    Size Distribution: <size distribution name>,
+                    Size Distribution Parameters: {...}
+                    }
+}
+````
+
+* `get_traffic_metrics`: returns a dictionary with maximum average lambda value as the key, and the rest of the metrics as a value.
+
+* `get_time_size_distribution_parameters`: calls to functions that extract and organize time (`create_traffic_time_distribution`) and size (`create_traffic_size_distribution`) distribution information about the traffic metrics.
+
+* `create_traffic_time_distribution`: fill out the dictionary with time distribution metrics. 
+
+* `create_traffic_size_distribution`: fill out the dictionary with size distribution metrics.
+
+* `get_max_avg_lambda`: process the string with the maximum average lambda value and retrieve that value for the corresponding dictionary. 

@@ -52,24 +52,6 @@ class NetworkInput:
         self.port_statistics_list = self.get_link_usage_metrics(self.link_filepath)
 
     """
-        Create an adjacency matrix from the routing matrices.
-
-        @param routing_matrices: MatrixPath structure of routing information
-        @return adjacency matrix of routes
-    """
-    def process_routing_matrix(self, routing_matrices):
-        adj_matrix = np.zeros(())
-        for i in range(0, self.topology_size, 1):
-            for j in range(0, self.topology_size, 1):
-                for k in routing_matrices[i][j]:
-                    if k:
-                        # Populate the adjacency matrix
-                        src = k[0]
-                        dest = k[-1]
-                        route = k[1:-1]
-        return None
-
-    """
         Converting data collected and processed from simulationResults.txt, traffic.txt, and linkUsage.txt to dataframes, which are then 
         converted to .csv files.
     """
@@ -338,6 +320,24 @@ class NetworkInput:
             routing_matrices.append(routing_matrix)
         
         return sim_numbers, routing_matrices 
+
+    """
+        Create an adjacency matrix from the routing matrices.
+
+        @param routing_matrices: MatrixPath structure of routing information
+        @return adjacency matrix of routes
+    """
+    def process_routing_matrix(self, routing_matrices):
+        adj_matrix = np.zeros(())
+        for i in range(0, self.topology_size, 1):
+            for j in range(0, self.topology_size, 1):
+                for k in routing_matrices[i][j]:
+                    if k:
+                        # Populate the adjacency matrix
+                        src = k[0]
+                        dest = k[-1]
+                        route = k[1:-1]
+        return None
 
     """
         Creating a routing object to show an n x n matrix and how each cell [i, j] contains the path to go from node i

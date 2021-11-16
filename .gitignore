@@ -4,3 +4,4 @@ test_data/
 __pycache__/
 plots/
 tabular_data/
+.DS_Store
