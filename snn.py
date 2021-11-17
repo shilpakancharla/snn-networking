@@ -9,6 +9,35 @@ from snntorch import spikeplot as splt
 from torch.utils.data import DataLoader
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
+class SpikingNeuralNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # Initialize layers
+        fc1 = nn.Linear(number_inputs, number_hidden) # Applies linear transformation to all input points
+        lif1 = snn.Leaky(beta = beta) # Integrates weighted input over time, emitting a spike if threshold condition is met
+        fc2 = nn.Linear(number_hidden, number_outputs) # Applies linear transformation to output spikes of lif1
+        lif2 = snn.Leaky(beta = beta) # Another spiking neuron, integrating the weighted spikes over time
+
+    def forward(self, x):
+        # Initialize hidden states at t = 0
+        mem1 = self.lif1.init_leaky()
+        mem2 = self.lif2.init_leaky()
+
+        # Record the final layer
+        spk2_rec = []
+        mem2_rec = []
+
+        for step in range(num_steps):
+            cur1 = self.fc1(x)
+            spk1, mem1 = self.lif1(cur1, mem1)
+            cur2 = self.fc2(spk1)
+            spk2, mem2 = self.lif2(cur2, mem2)
+            spk2_rec.append(spk2)
+            mem2_rec.append(mem2)
+
+        return torch.stack(spk2_rec, dim = 0), torch.stack(mem2_rec, dim = 0)
+
 """
     Process all .csv files to create a dataframe that will be encoded and standardized. Convert this structure to a tensor
     and shape it into the required format for the SNN.
@@ -44,8 +73,8 @@ def process_dataframe(csv_filepath):
     # Convert dataframe to tensor
     tensor_obj = torch.tensor(df_scaled.values)
 
-    # Convert dataset to spiking dataset
-    spike_rate = rate_coding(tensor_obj, 25, 200)
+    # Convert dataset to spiking dataset using rate coding
+    spike_data_rate = rate_coding(tensor_obj, 25, 200)
         
     # Put dataframe into tensor structure for feeding into spiking neural network
     #torch_input_tensor = torch.tensor(df_scaled.iloc[:, :-3].values) # Select every column except last three columns of dataframe
@@ -79,43 +108,20 @@ def delta_modulation(tensor, batch_size, threshold):
     data = iter(data_loader)
     data_it = next(data)
     
-    # Create data of dimensions [time x batch_size x feature_dimensions]
+    # Create data of dimensions [batch_size x feature_dimensions]
     spike_data = spikegen.delta(data_it, threshold = threshold, off_spike = True)
     return spike_data
 
 def train_validation_test_split(df):
     return
 
-"""
-    Create the spiking neural network (SNN) model for training.
-
-    @param input_data: torch tensor of input data
-    @param output_data: torch tensor of output data
-"""
-def create_snn(input_data, output_data):
-    # Layer parameters
-    number_inputs = input_data.size(dim = 2)
-    number_hidden = 1000
-    number_outputs = output_data.size(dim = 2)
-    beta = 0.99
-
-    # Initialize layers
-    fc1 = nn.Linear(number_inputs, number_hidden)
-    lif1 = snn.Leaky(beta = beta)
-    fc2 = nn.Linear(number_hidden, number_outputs)
-    lif2 = snn.Leaky(beta = beta)
-
-    # Initialize hidden states
-    mem1 = lif1.init_leaky()
-    mem2 = lif2.init_leaky()
-
-    # Record outputs
-    mem2_rec = []
-    spk1_rec = []
-    spk2_rec = []
-
 # Driver code
 if __name__ == "__main__":
     csv_filepath = 'tabular_data/25/results_25_400-2000_325_349.csv'
     df = process_dataframe(csv_filepath)
 
+    # Layer parameters
+    number_inputs = 23
+    number_hidden = 1000
+    number_outputs = 3
+    beta = 0.99
