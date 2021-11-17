@@ -14,39 +14,12 @@ from sklearn.preprocessing import StandardScaler
 def process_dataframe(csv_filepath):
     df = pd.read_csv(csv_filepath)
     # Outputs of interest: Avg Packet Loss, Avg Utilization, Max Queue Occupancy
-    df_dropped = df.drop(['Link Exists', 
+    df_raw = df.drop(['Link Exists', 
                         'Avg Packet Length', 
                         'Avg Utilization First', 
                         'Avg Packet Loss Rate', 
                         'Avg Port Occupancy',
                         'Avg Packet Length First'], axis = 1)
-    
-    df_raw = df_dropped[['Global Packet',
-                        'Global Loss',
-                        'Global Delay',
-                        'Average Bandwidth',
-                        'Packets Transmitted',
-                        'Packets Dropped',
-                        'Average Per-Packet Delay',
-                        'Neperian Logarithm',
-                        'Percentile 10',
-                        'Percentile 20',
-                        'Percentile 50',
-                        'Percentile 80',
-                        'Percentile 90',
-                        'Jitter',
-                        'Max Avg Lambda',
-                        'Time Distribution',
-                        'Size Distribution',
-                        'Equivalent Lambda',
-                        'Average Packet Lambda',
-                        'Exponential Max Factor',
-                        'Average Packet Size',
-                        'Packet Size 1',
-                        'Packet Size 2',
-                        'Avg Utilization',
-                        'Avg Packet Loss',
-                        'Max Queue Occupancy']]
     
     # Encode the Time Distribution column
     le_time = preprocessing.LabelEncoder()
@@ -61,7 +34,12 @@ def process_dataframe(csv_filepath):
     # Scale the input data using StandardScaler
     scaler = StandardScaler()
     df_scaled = pd.DataFrame(scaler.fit_transform(df_raw), columns = df_raw.columns)
-    print(df_scaled)
+    
+    # Put dataframe into tensor structure for feeding into spiking neural network
+    torch_input_tensor = torch.tensor(df_scaled.iloc[:, :-3].values) # Select every column except last three columns of dataframe
+    torch_output_tensor = torch.tensor(df_scaled.iloc[:, -3:].values) # Select only last three columns of dataframe
+    print(torch_input_tensor.size())
+    print(torch_output_tensor.size())
     return 
 
 def create_snn():
