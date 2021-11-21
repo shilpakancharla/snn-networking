@@ -6,6 +6,11 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 from collections import Counter
 
+"""
+    Author: Shilpa Kancharla
+    Last Modified: November 21, 2021
+"""
+
 class NetworkInput:
     """
         Parameters in NetworkInput class (used for data processing):
@@ -888,9 +893,9 @@ def process_training_data(data_directory):
             print("NoneType encountered. Continuing data processing.")
 
 """
-    Create the NetworkInput object for the validation data.
+    Create the NetworkInput object for the validation and test data.
 
-    @param data_directory: path to where validation files are located
+    @param data_directory: path to where validation or test files are located
 """
 def process_validation_data(data_directory):
     # Iterate through directories, subdirectories, and files for training dataset
