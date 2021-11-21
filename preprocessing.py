@@ -905,7 +905,7 @@ def process_validation_data(data_directory):
         if 'results' in root:
             name = root.replace(data_directory, "")
             token_list = name.split('\\')
-            topology_size = int(token_list[0]))
+            topology_size = int(token_list[0])
             output_name = token_list[1]
             if (output_name + '\\' + output_name) in root:
                 for file_list_ in os.walk(root):
@@ -917,10 +917,25 @@ def process_validation_data(data_directory):
                             traffic_file = root + '\\' + item[4]
                 graph_files = data_directory + str(topology_size) + '\graphs\\' # Get route to graph files directory
                 if None not in (topology_size, input_file, traffic_file, link_file, graph_files, sim_file, output_name):
-                    # Check to see if file already exists. If it does, skip processing this section of data.
+                    # Check to see if file already exists. If it does, modify the file name.
                     if os.path.isfile('tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'):
-                        print(output_name + '.csv already exists.')
-                        continue
+                        print(output_name + '.csv already exists. Modifying the name.')
+                        if '-2' in data_directory:
+                            output_name = output_name + '-2'
+                        elif '-3' in data_directory:
+                            output_name = output_name + '-3'
+                        print("Creating NetworkInput object.")
+                        dataset = NetworkInput(data_directory, 
+                                            topology_size, 
+                                            input_file, 
+                                            traffic_file, 
+                                            link_file, 
+                                            graph_files, 
+                                            sim_file, 
+                                            output_name)
+                        print("Creating " + output_name + ".csv.")
+                        dataset.write_to_csv()
+                        print("Finished creating " + output_name + ".csv.")
                     # Create the NetworkInput object if the .csv file does not exist for that section of data.
                     else:
                         print("Creating NetworkInput object.")
@@ -944,6 +959,6 @@ if __name__ == "__main__":
     VALIDATION_PATH_3 = 'validation_data\gnnet-ch21-dataset-validation\ch21-val-setting-3\\'
     #TEST_PATH
     #process_training_data(TRAINING_PATH)
-    process_validation_data(VALIDATION_PATH_1)
-    #process_data(VALIDATION_PATH_2)
-    #process_data(VALIDATION_PATH_3)
+    #process_validation_data(VALIDATION_PATH_1)
+    process_validation_data(VALIDATION_PATH_2)
+    process_validation_data(VALIDATION_PATH_3)
