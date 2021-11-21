@@ -924,6 +924,12 @@ def process_validation_data(data_directory):
                             output_name = output_name + '-2'
                         elif '-3' in data_directory:
                             output_name = output_name + '-3'
+                        elif 'test' in data_directory and '-1' in data_directory:
+                            output_name = output_name + '-test-1'
+                        elif 'test' in data_directory and '-2' in data_directory:
+                            output_name = output_name + '-test-2'
+                        elif 'test' in data_directory and '-3' in data_directory:
+                            output_name = output_name + '-test-3'
                         print("Creating NetworkInput object.")
                         dataset = NetworkInput(data_directory, 
                                             topology_size, 
@@ -953,12 +959,31 @@ def process_validation_data(data_directory):
 
 # Driver code
 if __name__ == "__main__":
+    #extract('gnnet-ch21-dataset-test-with-labels.tar.gz', 'test_data\\')
+    #for i in range(200, 320, 20):
+        #extract_all_in_filepath('test_data\gnnet-ch21-dataset-test-with-labels\ch21-test-with-labels-setting-1\\' + str(i) +'\\')
+        #extract_all_in_filepath('test_data\gnnet-ch21-dataset-test-with-labels\ch21-test-with-labels-setting-2\\' + str(i) +'\\')
+        #extract_all_in_filepath('test_data\gnnet-ch21-dataset-test-with-labels\ch21-test-with-labels-setting-3\\' + str(i) +'\\')
+    
+    # Delete all files with particular .tar.gz extension
+    #directory = 'test_data\\'
+    #for root, directories, file_list in os.walk(directory):
+    #    for item in file_list:
+    #        if item.endswith('tar.gz'):
+    #            os.remove(os.path.join(root, item))
+
     TRAINING_PATH = 'training_data\gnnet-ch21-dataset-train\\'
     VALIDATION_PATH_1 = 'validation_data\gnnet-ch21-dataset-validation\ch21-val-setting-1\\'
     VALIDATION_PATH_2 = 'validation_data\gnnet-ch21-dataset-validation\ch21-val-setting-2\\'
     VALIDATION_PATH_3 = 'validation_data\gnnet-ch21-dataset-validation\ch21-val-setting-3\\'
-    #TEST_PATH
+    TEST_PATH_1 = 'test_data\gnnet-ch21-dataset-test-with-labels\ch21-test-with-labels-setting-1\\'
+    TEST_PATH_2 = 'test_data\gnnet-ch21-dataset-test-with-labels\ch21-test-with-labels-setting-2\\'
+    TEST_PATH_3 = 'test_data\gnnet-ch21-dataset-test-with-labels\ch21-test-with-labels-setting-3\\'
+
     #process_training_data(TRAINING_PATH)
     #process_validation_data(VALIDATION_PATH_1)
-    process_validation_data(VALIDATION_PATH_2)
-    process_validation_data(VALIDATION_PATH_3)
+    #process_validation_data(VALIDATION_PATH_2)
+    #process_validation_data(VALIDATION_PATH_3)
+    process_validation_data(TEST_PATH_1)
+    process_validation_data(TEST_PATH_2)
+    process_validation_data(TEST_PATH_3)
