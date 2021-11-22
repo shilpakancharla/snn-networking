@@ -923,18 +923,39 @@ def process_validation_data(data_directory):
                 graph_files = data_directory + str(topology_size) + '\graphs\\' # Get route to graph files directory
                 if None not in (topology_size, input_file, traffic_file, link_file, graph_files, sim_file, output_name):
                     # Check to see if file already exists. If it does, modify the file name.
-                    if os.path.isfile('tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'):
-                        print(output_name + '.csv already exists. Modifying the name.')
-                        if '-2' in data_directory:
+                    csv_path = 'tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'
+                    if os.path.isfile(csv_path):
+                        print(output_name + '.csv already exists. Trying to modify the name.')
+                        if 'validation' in data_directory and '-2' in data_directory:
                             output_name = output_name + '-2'
-                        elif '-3' in data_directory:
+                            new_csv_path = 'tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'
+                            if os.path.isfile(new_csv_path):
+                                print(output_name + ' already exists as a validation file.')
+                                continue
+                        elif 'validation' in data_directory and '-3' in data_directory:
                             output_name = output_name + '-3'
+                            new_csv_path = 'tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'
+                            if os.path.isfile(new_csv_path):
+                                print(output_name + ' already exists as a validation file.')
+                                continue
                         elif 'test' in data_directory and '-1' in data_directory:
                             output_name = output_name + '-test-1'
+                            new_csv_path = 'tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'
+                            if os.path.isfile(new_csv_path):
+                                print(output_name + ' already exists as a test file.')
+                                continue
                         elif 'test' in data_directory and '-2' in data_directory:
                             output_name = output_name + '-test-2'
+                            new_csv_path = 'tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'
+                            if os.path.isfile(new_csv_path):
+                                print(output_name + ' already exists as a test file.')
+                                continue
                         elif 'test' in data_directory and '-3' in data_directory:
                             output_name = output_name + '-test-3'
+                            new_csv_path = 'tabular_data\\' + str(topology_size) + '\\' + output_name + '.csv'
+                            if os.path.isfile(new_csv_path):
+                                print(output_name + ' already exists as a test file.')
+                                continue
                         print("Creating NetworkInput object.")
                         dataset = NetworkInput(data_directory, 
                                             topology_size, 
@@ -971,6 +992,8 @@ if __name__ == "__main__":
         #extract_all_in_filepath('test_data\gnnet-ch21-dataset-test-with-labels\ch21-test-with-labels-setting-3\\' + str(i) +'\\')
     
     # Delete all files with particular .tar.gz extension
+    #directory = 'training_data\\'
+    #directory = 'validation_data\\'
     #directory = 'test_data\\'
     #for root, directories, file_list in os.walk(directory):
     #    for item in file_list:
@@ -989,6 +1012,6 @@ if __name__ == "__main__":
     #process_validation_data(VALIDATION_PATH_1)
     #process_validation_data(VALIDATION_PATH_2)
     #process_validation_data(VALIDATION_PATH_3)
-    process_validation_data(TEST_PATH_1)
+    #process_validation_data(TEST_PATH_1)
     process_validation_data(TEST_PATH_2)
     process_validation_data(TEST_PATH_3)
