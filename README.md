@@ -121,3 +121,7 @@ The simulation results data structure is formatted as a list of lists of diction
 The link usage are organized as a list structure.
 
 * `get_link_usage_metrics`: given a link usage file, extract information about various metrics present. If a link does not exist, populate the list of metrics with all -1. 
+
+## Data Processing for Spiking Neural Network
+
+Further data processing is applied to get the data ready to run through a spiking neural network. For this segment, Amazon Web Services was particularly useful. All the preprocessed data so far was uploaded to an S3 bucket. `snn_data_processing.py` provides the APIs used alongside a description of each function. These functions were run on SageMaker. While the functions and the main driver code are provided here, it would be best to run this in SageMaker on the account that has the corresponding S3 bucket. 
