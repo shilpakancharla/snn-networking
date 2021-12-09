@@ -20,12 +20,14 @@ class SpikingNeuralNetwork(nn.Module):
         beta = 0.95
 
         # Initialize layers
-        fc1 = nn.Linear(number_inputs, number_hidden) # Applies linear transformation to all input points
-        lif1 = snn.Leaky(beta = beta) # Integrates weighted input over time, emitting a spike if threshold condition is met
-        fc2 = nn.Linear(number_hidden, number_outputs) # Applies linear transformation to output spikes of lif1
-        lif2 = snn.Leaky(beta = beta) # Another spiking neuron, integrating the weighted spikes over time
+        self.fc1 = nn.Linear(number_inputs, number_hidden) # Applies linear transformation to all input points
+        self.lif1 = snn.Leaky(beta = beta) # Integrates weighted input over time, emitting a spike if threshold condition is met
+        self.fc2 = nn.Linear(number_hidden, number_outputs) # Applies linear transformation to output spikes of lif1
+        self.lif2 = snn.Leaky(beta = beta) # Another spiking neuron, integrating the weighted spikes over time
 
     def forward(self, x):
+        num_steps = 25
+
         # Initialize hidden states at t = 0
         mem1 = self.lif1.init_leaky()
         mem2 = self.lif2.init_leaky()
@@ -131,6 +133,7 @@ def delta_modulation(tensor, batch_size, threshold):
 def training_one_iteration(train_loader, dtype, device, optimizer):
     # One iteration of training
     data, targets = next(iter(train_loader))
+    print(data.type())
     data = data.to(device)
     targets = targets.to(device)
     num_steps = 25
@@ -224,6 +227,8 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer, loss
                     train_printer()
                 counter = counter + 1
                 iter_counter = iter_counter + 1
+    
+    return loss_hist, test_loss_hist
 
 # Driver code
 if __name__ == "__main__":
@@ -245,29 +250,21 @@ if __name__ == "__main__":
     OUTPUT_TRAIN = 'output_train.npy'
     INPUT_TEST = 'input_test.npy'
     OUTPUT_TEST = 'output_test.npy'
-    input_train = np.load(INPUT_TRAIN)
-    output_train = np.load(OUTPUT_TRAIN)
-    input_test = np.load(INPUT_TEST)
-    output_test = np.load(OUTPUT_TEST)
-    print("Input train shape: " )
-    print(input_train.shape)
-    print("Output train shape: ")
-    print(output_train.shape)
-    print("Input test shape: " )
-    print(input_test.shape)
-    print("Output test shape: ")
-    print(output_test.shape)
+    features_train_tensor = np.load(INPUT_TRAIN)
+    target_train_tensor = np.load(OUTPUT_TRAIN)
+    features_test_tensor = np.load(INPUT_TEST)
+    target_test_tensor = np.load(OUTPUT_TEST)
 
-    features_train_tensor = torch.tensor(input_train)
-    target_train_tensor = torch.tensor(output_train)
-    features_test_tensor = torch.tensor(input_test)
-    target_test_tensor = torch.tensor(output_test)
+    #features_train_tensor = torch.tensor(input_train)
+    #target_train_tensor = torch.tensor(output_train)
+    #features_test_tensor = torch.tensor(input_test)
+    #target_test_tensor = torch.tensor(output_test)
 
     batch_size = 128
 
     # Passing numpy array to to DataLoader
-    train = TensorDataset(features_train_tensor, target_train_tensor)
-    test = TensorDataset(features_test_tensor, target_test_tensor)
+    train = TensorDataset(torch.from_numpy(features_train_tensor).float(), torch.from_numpy(target_train_tensor).float())
+    test = TensorDataset(torch.from_numpy(features_test_tensor).float(), torch.from_numpy(target_test_tensor).float())
     train_loader = DataLoader(dataset = train, batch_size = batch_size, shuffle = True)
     test_loader = DataLoader(dataset = test, batch_size = batch_size, shuffle = True)
 
@@ -275,6 +272,7 @@ if __name__ == "__main__":
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     # Load network onto CUDA if available
     net = SpikingNeuralNetwork().to(device)
+
     loss = nn.CrossEntropyLoss() # Softmax of output layer, generate loss at output
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))
 
