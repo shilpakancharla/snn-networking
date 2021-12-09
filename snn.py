@@ -17,6 +17,8 @@ class SpikingNeuralNetwork(nn.Module):
         number_inputs = 21 # 21 features after feature engineering
         number_hidden = 1000
         number_outputs = 3 # 3 targets
+        beta = 0.95
+
         # Initialize layers
         fc1 = nn.Linear(number_inputs, number_hidden) # Applies linear transformation to all input points
         lif1 = snn.Leaky(beta = beta) # Integrates weighted input over time, emitting a spike if threshold condition is met
@@ -52,7 +54,7 @@ def print_batch_accuracy(data, targets, train = False):
     else:
         print(f"Test set accuracy for a single minibatch: {acc * 100:.2f}%")
 
-def test_printer():
+def train_printer():
     print(f"Epoch {epoch}, Iteration {iter_counter}")
     print(f"Train Set Loss: {loss_hist[counter]:.2f}")
     print(f"Test Set Loss: {loss_hist[counter]:.2f}")
@@ -126,7 +128,12 @@ def delta_modulation(tensor, batch_size, threshold):
     spike_data = spikegen.delta(data_it, threshold = threshold, off_spike = True)
     return spike_data
 
-def training_one_iteration(loss, data, targets):
+def training_one_iteration(train_loader, dtype, device, optimizer):
+    # One iteration of training
+    data, targets = next(iter(train_loader))
+    data = data.to(device)
+    targets = targets.to(device)
+    num_steps = 25
     spk_rec, mem_rec = net(data.view(batch_size, -1))
     print(mem_rec.size())
 
@@ -140,14 +147,83 @@ def training_one_iteration(loss, data, targets):
     print(f"Training loss: {loss_val.item():.3f}")
 
     print_batch_accuracy(data, targets, train = True)
-    # clear previously stored gradients
-    optimizer.zero_grad()
+    
+    
+    optimizer.zero_grad() # Clear previously stored gradients
+    loss_val.backward() # Calculate the gradient
+    optimizer.step() # Weight update
 
-    # calculate the gradients
-    loss_val.backward()
+    # Rerun the loss calculation and accuracy after a single iteration
+    # calculate new network outputs using the same data
+    spk_rec, mem_rec = net(data.view(batch_size, -1))
 
-    # weight update
-    optimizer.step()
+    # initialize the total loss value
+    loss_val = torch.zeros((1), dtype=dtype, device=device)
+
+    # sum loss at every step
+    for step in range(num_steps):
+        loss_val += loss(mem_rec[step], targets)
+
+    print(f"Training loss: {loss_val.item():.3f}")
+    print_batch_accuracy(data, targets, train=True)
+
+def training_loop(net, train_loader, test_loader, dtype, device, optimizer, loss_val):
+    num_epochs = 1
+    loss_hist = []
+    test_loss_hist = []
+    counter = 0
+
+    # Temporal dynamics
+    num_steps = 25
+
+    # Outer training loop
+    for epoch in range(num_epochs):
+        iter_counter = 0
+        train_batch = iter(train_loader)
+
+        # Minibatch training loop
+        for data, targets in train_batch:
+            data = data.to(device)
+            targets = targets.to(device)
+
+            # Forward pass
+            net.train()
+            spk_rec, mem_rec = net(data.view(batch_size, -1))
+
+            # Initialize the loss and sum over time
+            loss_val = torch.zeros((1), dtype = dtype, device = device)
+            for step in range(num_steps):
+                loss_val += loss(mem_rec[step], targets)
+
+            # Gradient calculation and weight update
+            optimizer.zero_grad()
+            loss_val.backward()
+            optimizer.step()
+
+            # Store loss history for future plotting
+            loss_hist.append(loss_val.item())
+
+            # Test set
+            with torch.no_grad():
+                net.eval()
+                test_data, test_targets = next(iter(test_loader))
+                test_data = test_data.to(device)
+                test_targets = test_targets.to(device)
+
+                # Test set forward pass
+                test_spk, test_mem = net(test_data.view(batch_size, -1))
+
+                # Test set loss
+                test_loss = torch.zeros((1), dtype = dtype, device = device)
+                for step in range(num_steps):
+                    test_loss += loss(test_mem[step], target_targets)
+                test_loss_hist.append(test_loss.item())
+
+                # Print train/test loss and accuracy
+                if counter % 50 == 0:
+                    train_printer()
+                counter = counter + 1
+                iter_counter = iter_counter + 1
 
 # Driver code
 if __name__ == "__main__":
@@ -155,18 +231,43 @@ if __name__ == "__main__":
     TEST_PATH = 'test\\'
     DROP_COLUMNS = ['Unnamed: 0', 'Time Distribution', 'Size Distribution', 'Link Exists', 'Avg Packet Length', 
                 'Avg Utilization First', 'Avg Packet Loss Rate', 'Avg Port Occupancy', 'Avg Packet Length First']
-    input_train, output_train = process_dataframe(TRAINING_PATH, DROP_COLUMNS)
-    print("Input training tensor: " + str(input_train.size()))
-    print("Output training tensor: " + str(output_train.size()))
-    input_test, output_test = process_dataframe(TEST_PATH, DROP_COLUMNS)
-    print("Input test tensor: " + str(input_test.size()))
-    print("Output test tensor: " + str(output_test.size()))
+    #input_train, output_train = process_dataframe(TRAINING_PATH, DROP_COLUMNS)
+    #input_test, output_test = process_dataframe(TEST_PATH, DROP_COLUMNS)
+    
+    # Save these numpy arrays to load in again
+    #np.save("input_train.npy", input_train)
+    #np.save("output_train.npy", output_train)
+    #np.save("input_test.npy", input_test)
+    #np.save("output_test.npy", output_test)
+
+    # Load .npy files once you save them
+    INPUT_TRAIN = 'input_train.npy'
+    OUTPUT_TRAIN = 'output_train.npy'
+    INPUT_TEST = 'input_test.npy'
+    OUTPUT_TEST = 'output_test.npy'
+    input_train = np.load(INPUT_TRAIN)
+    output_train = np.load(OUTPUT_TRAIN)
+    input_test = np.load(INPUT_TEST)
+    output_test = np.load(OUTPUT_TEST)
+    print("Input train shape: " )
+    print(input_train.shape)
+    print("Output train shape: ")
+    print(output_train.shape)
+    print("Input test shape: " )
+    print(input_test.shape)
+    print("Output test shape: ")
+    print(output_test.shape)
+
+    features_train_tensor = torch.tensor(input_train)
+    target_train_tensor = torch.tensor(output_train)
+    features_test_tensor = torch.tensor(input_test)
+    target_test_tensor = torch.tensor(output_test)
 
     batch_size = 128
 
     # Passing numpy array to to DataLoader
-    train = TensorDataset(input_train, output_train)
-    test = TensorDataset(input_test, output_test)
+    train = TensorDataset(features_train_tensor, target_train_tensor)
+    test = TensorDataset(features_test_tensor, target_test_tensor)
     train_loader = DataLoader(dataset = train, batch_size = batch_size, shuffle = True)
     test_loader = DataLoader(dataset = test, batch_size = batch_size, shuffle = True)
 
@@ -177,9 +278,4 @@ if __name__ == "__main__":
     loss = nn.CrossEntropyLoss() # Softmax of output layer, generate loss at output
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))
 
-    # One iteration of training
-    data, targets = next(iter(train_loader))
-    data = data.to(device)
-    targets = targets.to(device)
-
-    training_one_iteration(loss, data, targets)
+    training_one_iteration(train_loader, dtype, device, optimizer)
