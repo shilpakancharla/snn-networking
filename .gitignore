@@ -5,3 +5,5 @@ __pycache__/
 plots/
 tabular_data/
 .DS_Store
+test/
+training/
