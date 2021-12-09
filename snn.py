@@ -255,11 +255,6 @@ if __name__ == "__main__":
     features_test_tensor = np.load(INPUT_TEST)
     target_test_tensor = np.load(OUTPUT_TEST)
 
-    #features_train_tensor = torch.tensor(input_train)
-    #target_train_tensor = torch.tensor(output_train)
-    #features_test_tensor = torch.tensor(input_test)
-    #target_test_tensor = torch.tensor(output_test)
-
     batch_size = 128
 
     # Passing numpy array to to DataLoader
@@ -273,7 +268,7 @@ if __name__ == "__main__":
     # Load network onto CUDA if available
     net = SpikingNeuralNetwork().to(device)
 
-    loss = nn.CrossEntropyLoss() # Softmax of output layer, generate loss at output
+    loss = nn.MSELoss() # Allows you to train multiple targets
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))
 
     training_one_iteration(train_loader, dtype, device, optimizer)
