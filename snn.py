@@ -71,6 +71,7 @@ class SpikingNeuralNetwork(nn.Module):
     @param data: feature values
     @param targets: target values
     @param train: Boolean of if we are in train mode or not
+    @return accuracy value for the iteration
 """
 def print_batch_accuracy(data, targets, train = False):
     output, _ = net(data.view(batch_size, -1))
@@ -81,6 +82,7 @@ def print_batch_accuracy(data, targets, train = False):
         print(f"Train set accuracy for a single minibatch: {acc * 100:.2f}%")
     else:
         print(f"Test set accuracy for a single minibatch: {acc * 100:.2f}%")
+    return acc
 
 """
     Print the results of training. 
@@ -98,9 +100,10 @@ def train_printer(epoch, iter_counter, counter, loss_history, data, targets, tes
     print(f"Epoch {epoch}, Iteration {iter_counter}")
     print(f"Train Set Loss: {loss_history[counter]:.2f}")
     print(f"Test Set Loss: {loss_history[counter]:.2f}")
-    print_batch_accuracy(data, targets, train = True)
-    print_batch_accuracy(test_data, test_targets, train = False)
+    acc = print_batch_accuracy(data, targets, train = True)
+    test_acc = print_batch_accuracy(test_data, test_targets, train = False)
     print("\n")
+    return acc, test_acc
 
 """
     Process all .csv files to create a dataframe that will be encoded and standardized. Convert this structure to a tensor
@@ -244,7 +247,7 @@ def training_one_iteration(train_loader, dtype, device, optimizer):
 
     print(f"Training loss: {loss_val.item():.3f}")
 
-    print_batch_accuracy(data, targets, train = True)
+    acc = print_batch_accuracy(data, targets, train = True)
     
     
     optimizer.zero_grad() # Clear previously stored gradients
@@ -263,7 +266,7 @@ def training_one_iteration(train_loader, dtype, device, optimizer):
         loss_val += loss_function(mem_rec[step], targets.long().flatten().to(device))
 
     print(f"Training loss: {loss_val.item():.3f}")
-    print_batch_accuracy(data, targets, train = True)
+    acc = print_batch_accuracy(data, targets, train = True)
 
 """
     Testing out one iteration of training to ensure network can run.
@@ -276,11 +279,15 @@ def training_one_iteration(train_loader, dtype, device, optimizer):
     @param optimizer: Adam optimizer
     @return loss history of train data
     @return loss history of test data
+    @return accuracy history of train data
+    @return accuracy history of test data
 """
 def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
     num_epochs = 1
     loss_history = []
     test_loss_history = []
+    acc = []
+    test_acc = []
     counter = 0
 
     # Temporal dynamics
@@ -298,7 +305,11 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
 
             # Forward pass
             net.train()
-            spk_rec, mem_rec = net(data.view(batch_size, -1))
+            try:
+                spk_rec, mem_rec = net(data.view(batch_size, 21))
+            except RuntimeError:
+                print("Hit RuntimeError.")
+                return loss_history, test_loss_history # Return values to this point
 
             # Initialize the loss and sum over time
             loss_val = torch.zeros((1), dtype = dtype, device = device)
@@ -321,7 +332,11 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
                 test_targets = test_targets.to(device)
 
                 # Test set forward pass
-                test_spk, test_mem = net(test_data.view(batch_size, -1))
+                try: 
+                    test_spk, test_mem = net(test_data.view(batch_size, 21))
+                except RuntimeError:
+                    print("Hit RuntimeError.")
+                    return loss_history, test_loss_history
 
                 # Test set loss
                 test_loss = torch.zeros((1), dtype = dtype, device = device)
@@ -329,13 +344,18 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
                     test_loss += loss_function(test_mem[step], test_targets.long().flatten().to(device))
                 test_loss_history.append(test_loss.item())
 
+                acc_ = None
+                test_acc_ = None
+
                 # Print train/test loss and accuracy
                 if counter % 50 == 0:
-                    train_printer(epoch, iter_counter, counter, loss_history, data, targets, test_data, test_targets)
+                    acc, test_acc = train_printer(epoch, iter_counter, counter, loss_history, data, targets, test_data, test_targets)
                 counter = counter + 1
                 iter_counter = iter_counter + 1
+                acc.append(acc_)
+                test_acc.append(test_acc_)
     
-    return loss_history, test_loss_history
+    return loss_history, test_loss_history, acc, test_acc
 
 """
     Plot the loss and test loss histories.
@@ -351,7 +371,23 @@ def plot_loss(loss_history, test_loss_history):
     plt.legend(["Train Loss", "Test Loss"])
     plt.xlabel("Iteration")
     plt.ylabel("Loss")
-    plt.show()    
+    plt.savefig('loss_histories.png') 
+
+"""
+    Plot the accuracy and test accuracy histories.
+
+    @param acc: accuracy history of train data
+    @param test_acc: accuracy history of test data
+"""
+def plot_acc(acc, test_acc):
+    fig = plt.figure(facecolor = 'w', figsize = (10, 5))
+    plt.plot(acc)
+    plt.plot(test_acc)
+    plt.title("Accuracy Curves")
+    plt.legend(["Train Accuracy", "Test Accuracy"])
+    plt.xlabel("Iteration")
+    plt.ylabel("Accuracy %")
+    plt.savefig('accuracies.png')  
 
 # Driver code
 if __name__ == "__main__":
@@ -393,8 +429,8 @@ if __name__ == "__main__":
     # Passing numpy array to to DataLoader
     train = TensorDataset(torch.from_numpy(features_train_tensor).float(), torch.from_numpy(target_train_tensor).float())
     test = TensorDataset(torch.from_numpy(features_test_tensor).float(), torch.from_numpy(target_test_tensor).float())
-    train_loader = DataLoader(dataset = train, batch_size = batch_size, shuffle = True)
-    test_loader = DataLoader(dataset = test, batch_size = batch_size, shuffle = True)
+    train_loader = DataLoader(dataset = train, batch_size = batch_size, shuffle = True, drop_last = True)
+    test_loader = DataLoader(dataset = test, batch_size = batch_size, shuffle = True, drop_last = True)
 
     dtype = torch.float
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -404,4 +440,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))
 
     #training_one_iteration(train_loader, dtype, device, optimizer)
-    loss_history, test_hist_loss = training_loop(net, train_loader, test_loader, dtype, device, optimizer)
+    loss_history, test_loss_history, acc, test_acc = training_loop(net, train_loader, test_loader, dtype, device, optimizer)
+
+    plot_loss(loss_history, test_loss_history)
+    plot_accuracy(acc, test_acc)
