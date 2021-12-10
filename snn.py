@@ -286,8 +286,8 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
     num_epochs = 1
     loss_history = []
     test_loss_history = []
-    acc = []
-    test_acc = []
+    acc_history = []
+    test_acc_history = []
     counter = 0
 
     # Temporal dynamics
@@ -344,18 +344,29 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
                     test_loss += loss_function(test_mem[step], test_targets.long().flatten().to(device))
                 test_loss_history.append(test_loss.item())
 
-                acc_ = None
-                test_acc_ = None
+                acc_value = None
+                test_acc_value = None
 
                 # Print train/test loss and accuracy
                 if counter % 50 == 0:
                     acc, test_acc = train_printer(epoch, iter_counter, counter, loss_history, data, targets, test_data, test_targets)
                 counter = counter + 1
                 iter_counter = iter_counter + 1
-                acc.append(acc_)
-                test_acc.append(test_acc_)
+                acc_history.append(acc_value)
+                test_acc_history.append(test_acc_value)
+
+            # Break loop if any of these loss criteria are met
+            count_train_loss = 0
+            count_test_loss = 0
+            if (train_loss == 0.0):
+                count_train_loss = count_train_loss + 1
+            elif (test_loss == 0.0):
+                count_test_loss = count_test_loss + 1
+
+            if (count_train_loss == 3) and (count_test_loss == 3):
+                return loss_history, test_loss_history, acc_history, test_acc_history
     
-    return loss_history, test_loss_history, acc, test_acc
+    return loss_history, test_loss_history, acc_history, test_acc_history
 
 """
     Plot the loss and test loss histories.
