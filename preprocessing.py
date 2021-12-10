@@ -15,7 +15,7 @@ class NetworkInput:
     """
         Parameters in NetworkInput class (used for data processing):
         
-        1. data_directory: specifies if training, validation, or test directory is in use
+        1. data_directory: Specifies if training, validation, or test directory is in use
         2. topology_size: Size of network.
         3. input_filepath: Contains simulation number, the topology file, and the routing file used for that simulation.
         4. traffic_filepath: Contains the traffic parameters used by the simulator to generate the traffic for each iteration
@@ -23,7 +23,7 @@ class NetworkInput:
                         port statistics separated by comma (,) or -1 otherwise.
         6. graph_filepath: directory of graph files
         7. sim_filepath: Contains the measurements obtained by our network simulator for every sample.
-        8. output_name: output name of .csv file
+        8. output_name: Output name of .csv file
 
         Create the following objects from input data:
 

@@ -10,19 +10,40 @@ from snntorch import spikeplot as splt
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import MinMaxScaler
 
+"""
+    Author: Shilpa Kancharla
+    Last Modified: December 9, 2021
+"""
+
 class SpikingNeuralNetwork(nn.Module):
+    """
+        Parameters in SpikingNeuralNetwork class:
+        
+        1. number_inputs: Number of inputs to the SNN.
+        2. number_hidden: Number of hidden layers.
+        3. number_outputs: Number of output classes.
+        4. beta: Decay rate. 
+    """
     def __init__(self, number_inputs, number_hidden, number_outputs, beta):
         super().__init__()
         self.number_inputs = number_inputs
         self.number_hidden = number_hidden
         self.number_outputs = number_outputs
         self.beta = beta
+
         # Initialize layers
         self.fc1 = nn.Linear(self.number_inputs, self.number_hidden) # Applies linear transformation to all input points
         self.lif1 = snn.Leaky(beta = self.beta) # Integrates weighted input over time, emitting a spike if threshold condition is met
         self.fc2 = nn.Linear(self.number_hidden, self.number_outputs) # Applies linear transformation to output spikes of lif1
         self.lif2 = snn.Leaky(beta = self.beta) # Another spiking neuron, integrating the weighted spikes over time
 
+    """
+        Forward propagation of SNN. The code below function will only be called once the input argument x 
+        is explicitly passed into net.
+
+        @param x: input passed into the network
+        @return layer of output after applying final spiking neuron
+    """
     def forward(self, x):
         num_steps = 25
 
@@ -44,10 +65,16 @@ class SpikingNeuralNetwork(nn.Module):
 
         return torch.stack(spk2_rec, dim = 0), torch.stack(mem2_rec, dim = 0)
 
+"""
+    Calculate the accuracy after each iteration for the train and test sets.
+
+    @param data: feature values
+    @param targets: target values
+    @param train: Boolean of if we are in train mode or not
+"""
 def print_batch_accuracy(data, targets, train = False):
     output, _ = net(data.view(batch_size, -1))
     _, idx = output.sum(dim = 0).max(1)
-    print(type(idx))
     acc = np.mean((targets == idx).detach().cpu().numpy())
 
     if train:
@@ -55,10 +82,22 @@ def print_batch_accuracy(data, targets, train = False):
     else:
         print(f"Test set accuracy for a single minibatch: {acc * 100:.2f}%")
 
-def train_printer():
+"""
+    Print the results of training. 
+
+    @param epoch: which epoch is occuring right now
+    @param iter_counter: counts number of iterations
+    @param counter: indexes what content to print in loss history
+    @param loss_history: array of loss values
+    @param data: feature values of training set
+    @param targets: target values of training set
+    @param test_data: feature values of test set
+    @param test_targets: target values of test set
+"""
+def train_printer(epoch, iter_counter, counter, loss_history, data, targets, test_data, test_targets):
     print(f"Epoch {epoch}, Iteration {iter_counter}")
-    print(f"Train Set Loss: {loss_hist[counter]:.2f}")
-    print(f"Test Set Loss: {loss_hist[counter]:.2f}")
+    print(f"Train Set Loss: {loss_history[counter]:.2f}")
+    print(f"Test Set Loss: {loss_history[counter]:.2f}")
     print_batch_accuracy(data, targets, train = True)
     print_batch_accuracy(test_data, test_targets, train = False)
     print("\n")
@@ -98,15 +137,39 @@ def process_dataframe(csv_filepath, drop_columns):
     output_ = df_scaled.iloc[:, -1:].values # Select only last three columns of dataframe
     return input_, output_
 
+"""
+    Create bins of categorical data for average packet loss.
+
+    @param numerical_data_array: numpy array of output day
+    @return binned output data into categories
+"""
+def create_bins(numerical_data_array):
+    bins = np.linspace(0, 1, 100, endpoint = True) # Average packet loss is [0, 1]
+    idxs = np.digitize(numerical_data_array, bins)
+    return idxs
+
+"""
+    Creates histograms based on bins of output data of average packet loss.
+
+    @param numerical_data_array: numpy array of output day
+    @param title: title of histogram
+"""
 def create_output_histogram(numerical_data_array, title):
-    bins = np.linspace(0, 1, 100, endpoint = True)
-    # Average packet loss is [0, 1]
+    bins = np.linspace(0, 1, 100, endpoint = True) # Average packet loss is [0, 1]
     _ = plt.hist(numerical_data_array, bins = bins, weights = numerical_data_array)
     plt.title(title)
     plt.xlabel("Average Packet Loss")
     plt.ylabel("Number of Values")
     plt.show()
 
+"""
+    Rate coding for temporal input.
+
+    @param tensor: tensor input and target data to be coded
+    @param batch_size: size of batch to be fed into neural network
+    @param number_steps: temporal dynamics
+    @return rate spike coded data
+"""
 def rate_coding(tensor, batch_size, number_steps):
     # Create DataLoader object
     data_loader = DataLoader(tensor, batch_size = batch_size, shuffle = True)
@@ -117,6 +180,16 @@ def rate_coding(tensor, batch_size, number_steps):
     spike_data = spikegen.rate(data_it, num_steps = number_steps)
     return spike_data
 
+"""
+    Latency coding for temporal input.
+
+    @param tensor: tensor input and target data to be coded
+    @param batch_size: size of batch to be fed into neural network
+    @param number_steps: temporal dynamics
+    @tau: he RC time constant of the circuit; higher tau will induce slower firing
+    @threshold: the membrane potential firing threshold
+    @return latency spike coded data
+"""
 def latency_coding(tensor, batch_size, number_steps, tau, threshold):
     # Create DataLoader object
     data_loader = DataLoader(tensor, batch_size = batch_size, shuffle = True)
@@ -127,6 +200,14 @@ def latency_coding(tensor, batch_size, number_steps, tau, threshold):
     spike_data = spikegen.latency(data_it, num_steps = number_steps)
     return spike_data
 
+"""
+    Rate coding for temporal input.
+
+    @param tensor: tensor input and target data to be coded
+    @param batch_size: size of batch to be fed into neural network
+    @param number_steps: temporal dynamics
+    @return delta modulated coded data
+"""
 def delta_modulation(tensor, batch_size, threshold):
     # Create DataLoader object
     data_loader = DataLoader(tensor, batch_size = batch_size, shuffle = True)
@@ -137,10 +218,17 @@ def delta_modulation(tensor, batch_size, threshold):
     spike_data = spikegen.delta(data_it, threshold = threshold, off_spike = True)
     return spike_data
 
+"""
+    Testing out one iteration of training to ensure network can run.
+
+    @param train_loader: DataLoader object with training data
+    @param dtype: data type
+    @param device: device to load network on
+    @param optimizer: Adam optimizer
+"""
 def training_one_iteration(train_loader, dtype, device, optimizer):
     # One iteration of training
     data, targets = next(iter(train_loader))
-    print(data.type())
     data = data.to(device)
     targets = targets.to(device)
     num_steps = 25
@@ -152,7 +240,7 @@ def training_one_iteration(train_loader, dtype, device, optimizer):
 
     # Sum loss at every step
     for step in range(num_steps):
-        loss_val += loss(mem_rec[step], targets)
+        loss_val += loss_function(mem_rec[step], targets.long().flatten().to(device))
 
     print(f"Training loss: {loss_val.item():.3f}")
 
@@ -172,15 +260,27 @@ def training_one_iteration(train_loader, dtype, device, optimizer):
 
     # sum loss at every step
     for step in range(num_steps):
-        loss_val += loss(mem_rec[step], targets)
+        loss_val += loss_function(mem_rec[step], targets.long().flatten().to(device))
 
     print(f"Training loss: {loss_val.item():.3f}")
     print_batch_accuracy(data, targets, train = True)
 
-def training_loop(net, train_loader, test_loader, dtype, device, optimizer, loss_val):
+"""
+    Testing out one iteration of training to ensure network can run.
+
+    @param net: spiking neural network object
+    @param train_loader: DataLoader object with training data
+    @param test_loader: DataLoader object with test data
+    @param dtype: data type
+    @param device: device to load network on
+    @param optimizer: Adam optimizer
+    @return loss history of train data
+    @return loss history of test data
+"""
+def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
     num_epochs = 1
-    loss_hist = []
-    test_loss_hist = []
+    loss_history = []
+    test_loss_history = []
     counter = 0
 
     # Temporal dynamics
@@ -203,7 +303,7 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer, loss
             # Initialize the loss and sum over time
             loss_val = torch.zeros((1), dtype = dtype, device = device)
             for step in range(num_steps):
-                loss_val += loss(mem_rec[step], targets)
+                loss_val += loss_function(mem_rec[step], targets.long().flatten().to(device))
 
             # Gradient calculation and weight update
             optimizer.zero_grad()
@@ -211,7 +311,7 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer, loss
             optimizer.step()
 
             # Store loss history for future plotting
-            loss_hist.append(loss_val.item())
+            loss_history.append(loss_val.item())
 
             # Test set
             with torch.no_grad():
@@ -226,16 +326,32 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer, loss
                 # Test set loss
                 test_loss = torch.zeros((1), dtype = dtype, device = device)
                 for step in range(num_steps):
-                    test_loss += loss(test_mem[step], target_targets)
-                test_loss_hist.append(test_loss.item())
+                    test_loss += loss_function(test_mem[step], test_targets.long().flatten().to(device))
+                test_loss_history.append(test_loss.item())
 
                 # Print train/test loss and accuracy
                 if counter % 50 == 0:
-                    train_printer()
+                    train_printer(epoch, iter_counter, counter, loss_history, data, targets, test_data, test_targets)
                 counter = counter + 1
                 iter_counter = iter_counter + 1
     
-    return loss_hist, test_loss_hist
+    return loss_history, test_loss_history
+
+"""
+    Plot the loss and test loss histories.
+
+    @param loss_history: loss history of train data
+    @param test_loss_history: loss history of test data
+"""
+def plot_loss(loss_history, test_loss_history):
+    fig = plt.figure(facecolor = 'w', figsize = (10, 5))
+    plt.plot(loss_history)
+    plt.plot(test_loss_history)
+    plt.title("Loss Curves")
+    plt.legend(["Train Loss", "Test Loss"])
+    plt.xlabel("Iteration")
+    plt.ylabel("Loss")
+    plt.show()    
 
 # Driver code
 if __name__ == "__main__":
@@ -263,13 +379,14 @@ if __name__ == "__main__":
     OUTPUT_TEST = 'output_test.npy'
     features_train_tensor = np.load(INPUT_TRAIN)
     target_train_tensor = np.load(OUTPUT_TRAIN)
-    print(len(target_train_tensor))
     # Bin the output train data
     #create_output_histogram(target_train_tensor, "Histogram for range of values for training output")
+    idx_train = create_bins(target_train_tensor)
     features_test_tensor = np.load(INPUT_TEST)
     target_test_tensor = np.load(OUTPUT_TEST)
     # Bin the output test data
-    create_output_histogram(target_test_tensor, "Histogram for range of values for test output")
+    #create_output_histogram(target_test_tensor, "Histogram for range of values for test output")
+    idx_test = create_bins(target_test_tensor)
 
     batch_size = 128
 
@@ -281,9 +398,10 @@ if __name__ == "__main__":
 
     dtype = torch.float
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    net = SpikingNeuralNetwork(21, 1000, 1, 0.95).to(device) # Load network onto CUDA if available
+    net = SpikingNeuralNetwork(21, 1000, 100, 0.95).to(device) # Load network onto CUDA if available
 
-    loss_function = nn.MSELoss() # Regression mean squared loss
+    loss_function = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))
 
-    training_one_iteration(train_loader, dtype, device, optimizer)
+    #training_one_iteration(train_loader, dtype, device, optimizer)
+    loss_history, test_hist_loss = training_loop(net, train_loader, test_loader, dtype, device, optimizer)
