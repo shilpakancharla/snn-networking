@@ -129,7 +129,7 @@ Further data processing is applied to get the data ready to run through a spikin
 The main target of focus is the average packet loss in this experiment. Each average packet loss value was placed in a bin. The average packet loss values ranges between 0 and 1, inclusive. One hundred bins were created. The following histograms display the distribution of the training and test target values. 
 
 ![Distribution of average packet loss values for the training data.](images/Train_AvgPacketLoss.png)
-![Distribution of average packet loss values for the test data.](*images/Test_AvgPacketLoss.png)
+![Distribution of average packet loss values for the test data.](images/Test_AvgPacketLoss.png)
 
 ## Running the Spiking Neural Network
 The code used to build the spiking neural network in `snn.py` is heavily inspired from https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_5.html. Various functions to create the bins for the classification, plot the loss and accuracy, and process the dataframe were created. Additionally, the values from the dataframes were converted into tensors which can be loaded on to PyTorch's `DataLoader`

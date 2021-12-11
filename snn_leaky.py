@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 class SpikingLeakyNeuralNetwork(nn.Module):
     """
-        Parameters in SpikingNeuralNetwork class:
+        Parameters in SpikingLeakyNeuralNetwork class:
         
         1. number_inputs: Number of inputs to the SNN.
         2. number_hidden: Number of hidden layers.
