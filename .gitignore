@@ -7,7 +7,4 @@ tabular_data/
 .DS_Store
 test/
 training/
-input_test.npy
-input_train.npy
-output_test.npy
-output_train.npy
+npy_files/

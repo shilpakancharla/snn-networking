@@ -82,7 +82,7 @@ def print_batch_accuracy(data, targets, train = False):
         print(f"Train set accuracy for a single minibatch: {acc * 100:.2f}%")
     else:
         print(f"Test set accuracy for a single minibatch: {acc * 100:.2f}%")
-    return acc
+    return acc * 100
 
 """
     Print the results of training. 
@@ -279,17 +279,16 @@ def training_one_iteration(train_loader, dtype, device, optimizer):
     @param optimizer: Adam optimizer
     @return loss history of train data
     @return loss history of test data
-    @return accuracy history of train data
-    @return accuracy history of test data
+    @return accuracy history of train data (dictionary)
+    @return accuracy history of test data (dictionary)
 """
 def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
     num_epochs = 1
     loss_history = []
     test_loss_history = []
-    acc_history = []
-    test_acc_history = []
+    acc_history = dict()
+    test_acc_history = dict()
     counter = 0
-    count_train_loss = 0
     count_test_loss = 0
 
     # Temporal dynamics
@@ -311,12 +310,12 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
                 spk_rec, mem_rec = net(data.view(batch_size, 21))
             except RuntimeError:
                 print("Hit RuntimeError.")
-                return loss_history, test_loss_history # Return values to this point
+                return loss_history, test_loss_history, acc_history, test_acc_history # Return values to this point
 
             # Initialize the loss and sum over time
             loss_val = torch.zeros((1), dtype = dtype, device = device)
             for step in range(num_steps):
-                loss_val += loss_function(mem_rec[step], targets.long().flatten().to(device))
+                loss_val += loss_function(mem_rec[step], targets.float().flatten().to(device).unsqueeze(1))
 
             # Gradient calculation and weight update
             optimizer.zero_grad()
@@ -338,34 +337,28 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
                     test_spk, test_mem = net(test_data.view(batch_size, 21))
                 except RuntimeError:
                     print("Hit RuntimeError.")
-                    return loss_history, test_loss_history
+                    return loss_history, test_loss_history, acc_history, test_acc_history
 
                 # Test set loss
                 test_loss = torch.zeros((1), dtype = dtype, device = device)
                 for step in range(num_steps):
-                    test_loss += loss_function(test_mem[step], test_targets.long().flatten().to(device))
+                    test_loss += loss_function(test_mem[step], test_targets.float().flatten().to(device).unsqueeze(1))
                 test_loss_history.append(test_loss.item())
 
-                acc_value = None
-                test_acc_value = None
-
                 # Print train/test loss and accuracy
-                if counter % 50 == 0:
-                    acc, test_acc = train_printer(epoch, iter_counter, counter, loss_history, 
-                                            data, targets, test_data, test_targets)
+                acc_value, test_acc_value = train_printer(epoch, iter_counter, counter, loss_history, 
+                                        data, targets, test_data, test_targets)
                 counter = counter + 1
                 iter_counter = iter_counter + 1
-                acc_history.append(acc_value)
-                test_acc_history.append(test_acc_value)
+                acc_history[iter_counter] = acc_value
+                test_acc_history[iter_counter] = test_acc_value
 
-            # Break loop if any of these loss criteria are met
-            if (loss_val == 0.0):
-                count_train_loss = count_train_loss + 1
-            elif (test_loss == 0.0):
-                count_test_loss = count_test_loss + 1
+                # Break loop if any of these loss criteria are met
+                if torch.allclose(test_loss, torch.tensor([0.0009])):
+                    count_test_loss = count_test_loss + 1
 
-            if (count_train_loss == 3) and (count_test_loss == 3):
-                return loss_history, test_loss_history, acc_history, test_acc_history
+                if count_test_loss == 3:
+                    return loss_history, test_loss_history, acc_history, test_acc_history
     
     return loss_history, test_loss_history, acc_history, test_acc_history
 
@@ -376,7 +369,7 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
     @param test_loss_history: loss history of test data
 """
 def plot_loss(loss_history, test_loss_history):
-    fig = plt.figure(facecolor = 'w', figsize = (10, 5))
+    fig = plt.figure(facecolor = 'w', figsize = (20, 10))
     plt.plot(loss_history)
     plt.plot(test_loss_history)
     plt.title("Loss Curves")
@@ -386,20 +379,36 @@ def plot_loss(loss_history, test_loss_history):
     plt.savefig('loss_histories.png') 
 
 """
-    Plot the accuracy and test accuracy histories.
+    Plot the accuracy history.
 
-    @param acc: accuracy history of train data
-    @param test_acc: accuracy history of test data
+    @param acc: accuracy history of train data (dictionary)
 """
-def plot_acc(acc, test_acc):
-    fig = plt.figure(facecolor = 'w', figsize = (10, 5))
-    plt.plot(acc)
-    plt.plot(test_acc)
+def plot_accuracy(acc):
+    fig = plt.figure(facecolor = 'w', figsize = (20, 10))
+    acc_list = acc.items()
+    acc_list = sorted(acc_list)
+    x_acc, y_acc = zip(*acc_list)
+    plt.plot(x_acc, y_acc)
     plt.title("Accuracy Curves")
-    plt.legend(["Train Accuracy", "Test Accuracy"])
     plt.xlabel("Iteration")
     plt.ylabel("Accuracy %")
     plt.savefig('accuracies.png')  
+
+"""
+    Plot the test accuracy history.
+
+    @param test_acc: accuracy history of test data (dictionary)
+"""
+def plot_test_accuracy(test_acc):
+    fig = plt.figure(facecolor = 'w', figsize = (20, 10))
+    test_acc_list = test_acc.items()
+    test_acc_list = sorted(test_acc_list)
+    test_x_acc, test_y_acc = zip(*test_acc_list)
+    plt.plot(test_x_acc, test_y_acc)
+    plt.title("Test Accuracy Curve")
+    plt.xlabel("Iteration")
+    plt.ylabel("Accuracy %")
+    plt.savefig('test_accuracies.png') 
 
 # Driver code
 if __name__ == "__main__":
@@ -409,50 +418,65 @@ if __name__ == "__main__":
                 'Avg Utilization First', 'Avg Packet Loss Rate', 'Avg Port Occupancy', 'Max Queue Occupancy', 'Avg Packet Length First']
     #input_train, output_train = process_dataframe(TRAINING_PATH, DROP_COLUMNS)
     #input_test, output_test = process_dataframe(TEST_PATH, DROP_COLUMNS)
+    
+    # Check the shape of features and targets for train and test sets
     #print(input_train.shape)
     #print(output_train.shape)
     #print(input_test.shape)
     #print(output_test.shape)
     
     # Save these numpy arrays to load in again
-    #np.save("input_train.npy", input_train)
-    #np.save("output_train.npy", output_train)
-    #np.save("input_test.npy", input_test)
-    #np.save("output_test.npy", output_test)
+    #np.save("npy_files\\input_train.npy", input_train)
+    #np.save("npy_files\\output_train.npy", output_train)
+    #np.save("npy_files\\input_test.npy", input_test)
+    #np.save("npy_files\\output_test.npy", output_test)
 
     # Load .npy files once you save them
-    INPUT_TRAIN = 'input_train.npy'
-    OUTPUT_TRAIN = 'output_train.npy'
-    INPUT_TEST = 'input_test.npy'
-    OUTPUT_TEST = 'output_test.npy'
+    INPUT_TRAIN = 'npy_files\\input_train.npy'
+    OUTPUT_TRAIN = 'npy_files\\output_train.npy'
+    INPUT_TEST = 'npy_files\\input_test.npy'
+    OUTPUT_TEST = 'npy_files\\output_test.npy'
     features_train_tensor = np.load(INPUT_TRAIN)
     target_train_tensor = np.load(OUTPUT_TRAIN)
+    
     # Bin the output train data
     #create_output_histogram(target_train_tensor, "Histogram for range of values for training output")
-    idx_train = create_bins(target_train_tensor)
+    #idx_train = create_bins(target_train_tensor)
+    
     features_test_tensor = np.load(INPUT_TEST)
     target_test_tensor = np.load(OUTPUT_TEST)
+    
     # Bin the output test data
     #create_output_histogram(target_test_tensor, "Histogram for range of values for test output")
-    idx_test = create_bins(target_test_tensor)
-
+    #idx_test = create_bins(target_test_tensor)
+    
     batch_size = 128
 
     # Passing numpy array to to DataLoader
-    train = TensorDataset(torch.from_numpy(features_train_tensor).float(), torch.from_numpy(target_train_tensor).float())
-    test = TensorDataset(torch.from_numpy(features_test_tensor).float(), torch.from_numpy(target_test_tensor).float())
-    train_loader = DataLoader(dataset = train, batch_size = batch_size, shuffle = True, drop_last = True)
-    test_loader = DataLoader(dataset = test, batch_size = batch_size, shuffle = True, drop_last = True)
+    train = TensorDataset(torch.from_numpy(features_train_tensor).float(), 
+                        torch.from_numpy(target_train_tensor).float())
+    test = TensorDataset(torch.from_numpy(features_test_tensor).float(), 
+                        torch.from_numpy(target_test_tensor).float())
+    train_loader = DataLoader(dataset = train, 
+                            batch_size = batch_size, 
+                            shuffle = True, 
+                            drop_last = True)
+    test_loader = DataLoader(dataset = test, 
+                            batch_size = batch_size, 
+                            shuffle = True, 
+                            drop_last = True)
 
     dtype = torch.float
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    net = SpikingNeuralNetwork(21, 1000, 100, 0.95).to(device) # Load network onto CUDA if available
+    net = SpikingNeuralNetwork(21, 1000, 1, 0.95).to(device) # Load network onto CUDA if available
 
-    loss_function = nn.CrossEntropyLoss()
+    loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))
 
     #training_one_iteration(train_loader, dtype, device, optimizer)
-    loss_history, test_loss_history, acc, test_acc = training_loop(net, train_loader, test_loader, dtype, device, optimizer)
+    loss_history, test_loss_history, acc, test_acc = training_loop(net, train_loader, test_loader, dtype, 
+                                                                device, optimizer)
 
     plot_loss(loss_history, test_loss_history)
-    plot_accuracy(acc, test_acc)
+    plot_accuracy(acc)
+    plot_test_accuracy(test_acc)
