@@ -1,4 +1,4 @@
-# Spiking Neural Network for Networking Topology Data
+# Spiking Neural Network for Networking Data
 
 ## Background
 Each sample simulates a network scenario which comprises of three different aspects: 
@@ -132,4 +132,4 @@ The main target of focus is the average packet loss in this experiment. Each ave
 ![Distribution of average packet loss values for the test data.](Test_AvgPacketLoss.png)
 
 ## Running the Spiking Neural Network
-
+The code used to build the spiking neural network in `snn.py` is heavily inspired from https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_5.html. Various functions to create the bins for the classification, plot the loss and accuracy, and process the dataframe were created. Additionally, the values from the dataframes were converted into tensors which can be loaded on to PyTorch's `DataLoader`

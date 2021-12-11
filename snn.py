@@ -289,6 +289,8 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
     acc_history = []
     test_acc_history = []
     counter = 0
+    count_train_loss = 0
+    count_test_loss = 0
 
     # Temporal dynamics
     num_steps = 25
@@ -349,15 +351,14 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
 
                 # Print train/test loss and accuracy
                 if counter % 50 == 0:
-                    acc, test_acc = train_printer(epoch, iter_counter, counter, loss_history, data, targets, test_data, test_targets)
+                    acc, test_acc = train_printer(epoch, iter_counter, counter, loss_history, 
+                                            data, targets, test_data, test_targets)
                 counter = counter + 1
                 iter_counter = iter_counter + 1
                 acc_history.append(acc_value)
                 test_acc_history.append(test_acc_value)
 
             # Break loop if any of these loss criteria are met
-            count_train_loss = 0
-            count_test_loss = 0
             if (loss_val == 0.0):
                 count_train_loss = count_train_loss + 1
             elif (test_loss == 0.0):
