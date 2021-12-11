@@ -7,15 +7,15 @@ import snntorch as snn
 import matplotlib.pyplot as plt
 from snntorch import utils, spikegen
 from snntorch import spikeplot as splt
-from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import MinMaxScaler
+from torch.utils.data import DataLoader, TensorDataset
 
 """
     Author: Shilpa Kancharla
-    Last Modified: December 9, 2021
+    Last Modified: December 11, 2021
 """
 
-class SpikingNeuralNetwork(nn.Module):
+class SpikingLeakyNeuralNetwork(nn.Module):
     """
         Parameters in SpikingNeuralNetwork class:
         
@@ -468,7 +468,7 @@ if __name__ == "__main__":
 
     dtype = torch.float
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    net = SpikingNeuralNetwork(21, 1000, 1, 0.95).to(device) # Load network onto CUDA if available
+    net = SpikingLeakyNeuralNetwork(21, 1000, 1, 0.95).to(device) # Load network onto CUDA if available
 
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))
