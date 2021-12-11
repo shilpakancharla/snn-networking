@@ -125,3 +125,11 @@ The link usage are organized as a list structure.
 ## Data Processing for Spiking Neural Network
 
 Further data processing is applied to get the data ready to run through a spiking neural network. For this segment, Amazon Web Services was particularly useful. All the preprocessed data so far was uploaded to an S3 bucket. `snn_data_processing.py` provides the APIs used alongside a description of each function. These functions were run on SageMaker. While the functions and the main driver code are provided here, it would be best to run this in SageMaker on the account that has the corresponding S3 bucket. 
+
+The main target of focus is the average packet loss in this experiment. Each average packet loss value was placed in a bin. The average packet loss values ranges between 0 and 1, inclusive. One hundred bins were created. The following histograms display the distribution of the training and test target values. 
+
+![Distribution of average packet loss values for the training data.](Train_AvgPacketLoss.png)
+![Distribution of average packet loss values for the test data.](Test_AvgPacketLoss.png)
+
+## Running the Spiking Neural Network
+

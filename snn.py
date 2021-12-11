@@ -358,7 +358,7 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
             # Break loop if any of these loss criteria are met
             count_train_loss = 0
             count_test_loss = 0
-            if (train_loss == 0.0):
+            if (loss_val == 0.0):
                 count_train_loss = count_train_loss + 1
             elif (test_loss == 0.0):
                 count_test_loss = count_test_loss + 1
