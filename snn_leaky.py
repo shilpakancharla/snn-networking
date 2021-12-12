@@ -136,8 +136,8 @@ def process_dataframe(csv_filepath, drop_columns):
     df_scaled = pd.DataFrame(scaler.fit_transform(concat_df), columns = concat_df.columns)
     
     # Prepare for a tensor structure
-    input_ = df_scaled.iloc[:, :-1].values # Select every column except last three columns of dataframe
-    output_ = df_scaled.iloc[:, -1:].values # Select only last three columns of dataframe
+    input_ = df_scaled.iloc[:, :-1].values # Select every column except last column of dataframe
+    output_ = df_scaled.iloc[:, -1:].values # Select only last column of dataframe
     return input_, output_
 
 """
