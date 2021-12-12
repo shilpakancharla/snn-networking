@@ -9,13 +9,13 @@ from torch.utils.data import DataLoader, TensorDataset
 
 """
     Author: Shilpa Kancharla
-    Last Modified: December 11, 2021
+    Last Modified: December 12, 2021
 """
 
 class NeuralNetwork(nn.Module):
 
     """
-        Parameters in SpikingSynapticNeuralNetwork class:
+        Parameters in NeuralNetwork class:
         
         1. number_inputs: Number of inputs to the SNN.
         2. number_hidden: Number of hidden layers.
