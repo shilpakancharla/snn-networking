@@ -1,4 +1,5 @@
 import os
+import math
 import numpy as np 
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -60,7 +61,7 @@ def multiple_linear_regression(X_train, y_train, X_test):
     @return LASSO regression model
     @return predictions from model
 """
-def lasso_regression(X_train, y_train):
+def lasso_regression(X_train, y_train, X_test):
     lasso_regression = LassoCV(cv = 10, random_state = 0)
     lasso_regression.fit(X_train, y_train)
     y_pred = lasso_regression.predict(X_test)
@@ -75,7 +76,7 @@ def lasso_regression(X_train, y_train):
     @return ridge regression model
     @return predictions from model
 """
-def ridge_regression(X_train, y_train):
+def ridge_regression(X_train, y_train, X_test):
     ridge_regression = Ridge(alpha = 1.0)
     ridge_regression.fit(X_train, y_train)
     y_pred = ridge_regression.predict(X_test)
@@ -90,7 +91,7 @@ def ridge_regression(X_train, y_train):
     @return LASSO regression model
     @return predictions from model
 """
-def lasso_regression(X_train, y_train):
+def lasso_regression(X_train, y_train, X_test):
     lasso_regression = LassoCV(cv = 10, random_state = 0)
     lasso_regression.fit(X_train, y_train)
     y_pred = lasso_regression.predict(X_test)
@@ -146,6 +147,51 @@ if __name__ == "__main__":
     X_train, y_train = process_dataframe(TRAINING_PATH, DROP_COLUMNS)
     X_test, y_test = process_dataframe(TEST_PATH, DROP_COLUMNS)
 
+    X_train = X_train[['Global Packet',
+                    'Global Loss',
+                    'Global Delay',
+                    'Average Bandwidth',
+                    'Packets Transmitted',
+                    'Packets Dropped',
+                    'Average Per-Packet Delay',
+                    'Neperian Logarithm',
+                    'Percentile 10',
+                    'Percentile 20',
+                    'Percentile 50',
+                    'Percentile 80',
+                    'Percentile 90',
+                    'Jitter',
+                    'Max Avg Lambda',
+                    'Equivalent Lambda',
+                    'Average Packet Lambda',
+                    'Exponential Max Factor',
+                    'Average Packet Size',
+                    'Packet Size 1',
+                    'Packet Size 2']]
+    y_train = y_train['Avg Packet Loss']
+    X_test = X_test[['Global Packet',
+                    'Global Loss',
+                    'Global Delay',
+                    'Average Bandwidth',
+                    'Packets Transmitted',
+                    'Packets Dropped',
+                    'Average Per-Packet Delay',
+                    'Neperian Logarithm',
+                    'Percentile 10',
+                    'Percentile 20',
+                    'Percentile 50',
+                    'Percentile 80',
+                    'Percentile 90',
+                    'Jitter',
+                    'Max Avg Lambda',
+                    'Equivalent Lambda',
+                    'Average Packet Lambda',
+                    'Exponential Max Factor',
+                    'Average Packet Size',
+                    'Packet Size 1',
+                    'Packet Size 2']]
+    y_test = y_test['Avg Packet Loss']
+
     train_rmse = []
     test_rmse = []
  
@@ -175,12 +221,12 @@ if __name__ == "__main__":
     print(f'Ridge regression training RSME: {ridge_regression_training_rmse}')
     ridge_regression_test_rmse = calculate_rmse(y_test, y_pred_ridge)
     print(f'Ridge regression test RMSE: {ridge_regression_test_rmse}')
-    print(f'Ridge regression model coefficient:\n {ridge_regression.coef_}'))
+    print(f'Ridge regression model coefficient:\n {ridge_regression.coef_}')
     train_rmse.append(ridge_regression_training_rmse)
     test_rmse.append(ridge_regression_test_rmse)
 
     # Random forest regression and RMSE calculation
-    rf_regression, y_pred_rf = random_forest_regression(X_train, y_train, X_test)
+    rf_regression, y_pred_rf = random_forest_regression(X_train, y_train, X_test, 0, 5)
     rf_regression_training_rmse = calculate_rmse(y_train, rf_regression.predict(X_train))
     print(f'Random forest regression training RMSE: {rf_regression_training_rmse}')
     rf_regression_test_rmse = calculate_rmse(y_test, y_pred_rf)
@@ -194,6 +240,8 @@ if __name__ == "__main__":
     print(f'Bayesian ridge regression training RMSE: {bayesian_regression_training_rmse}')
     bayesian_regression_test_rmse = calculate_rmse(y_test, y_pred_br)
     print(f'Bayesian ridge regression test RMSE: {bayesian_regression_test_rmse}')
+    train_rmse.append(bayesian_regression_training_rmse)
+    test_rmse.append(bayesian_regression_test_rmse)
 
     regression_dictionary_training = {'Multiple linear regression': linear_regression.predict(X_train),
                                     'LASSO regression': lasso_regression.predict(X_train),
@@ -209,6 +257,7 @@ if __name__ == "__main__":
 
     # Plot actual values against predictions
     for key in regression_dictionary_training:
+        fig = plt.figure(facecolor = 'w', figsize = (20, 10))
         plt.style.use('ggplot')
         plt.scatter(y_train, regression_dictionary_training[key], c = 'crimson')
         plt.yscale('log')
@@ -224,6 +273,7 @@ if __name__ == "__main__":
         plt.close()
 
     for key in regression_dictionary_test:
+        fig = plt.figure(facecolor = 'w', figsize = (20, 10))
         plt.style.use('ggplot')
         plt.scatter(y_test, regression_dictionary_test[key], c = 'crimson')
         plt.yscale('log')
@@ -242,11 +292,11 @@ if __name__ == "__main__":
     labels = ['Linear', 'LASSO', 'Ridge', 'Random Forest', 'Bayesian Ridge']
 
     x = np.arange(len(labels)) # Label locations
-    width = 0.3 # Width of bars
+    width = 0.5 # Width of bars
 
     fig, ax = plt.subplots(figsize = (15, 5))
     rect_1 = ax.bar(x + 0.00, train_rmse, width, color = 'r', label = "Training")
-    rect_3 = ax.bar(x + 0.25, test_rmse, width, color = 'b', label = "Test")
+    rect_2 = ax.bar(x + 0.25, test_rmse, width, color = 'b', label = "Test")
 
     ax.set_ylabel('RMSE')
     ax.set_title('Root Mean Squared Error for Barcelona Neural Networking Center Data')
