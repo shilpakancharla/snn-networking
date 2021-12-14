@@ -244,7 +244,7 @@ if __name__ == "__main__":
                     'Packet Size 1',
                     'Packet Size 2']]
     y_test = y_test['Avg Packet Loss']
-
+    
     y_tiers = y_train.apply(bracket_selection)
 
     # Perform Principal Components Analysis for feature selection
@@ -272,6 +272,7 @@ if __name__ == "__main__":
     plt.xlabel("PCA Component 1")
     plt.ylabel("PCA Component 2")
     plt.savefig('first_two_pca.png') # Training data
+    plt.close()
 
     #Creating a table with the explained variance ratio
     names_pcas = [f"PCA Component {i}" for i in range(1, 19, 1)]
@@ -286,6 +287,7 @@ if __name__ == "__main__":
     plt.ylabel('Explained Variance Ratio', fontsize = 15)
     plt.title('Scree Plot')
     plt.savefig('scree_plot.png')
+    plt.close()
 
     # Sorting the values of the first principal component by how large each one is
     df = pd.DataFrame({'PCA': pca_train.components_[0], 'Variable Names': list(X_train.columns)})
@@ -301,7 +303,7 @@ if __name__ == "__main__":
     train_rmse = []
     test_rmse = []
  
-    # Multiple linear regression and RMSE calculation
+    # Multiple linear regression and RMSE calculation    
     linear_regression, y_pred_reg = multiple_linear_regression(X_train, y_train, X_test)
     linear_regression_training_rmse = calculate_rmse(y_train, linear_regression.predict(X_train))
     print(f'Multiple linear regression training RMSE: {linear_regression_training_rmse}')
@@ -310,7 +312,7 @@ if __name__ == "__main__":
     train_rmse.append(linear_regression_training_rmse)
     test_rmse.append(linear_regression_test_rmse)
 
-    # LASSO regression, RMSE calculations, and attribute selection
+    # LASSO regression, RMSE calculations, and attribute selection   
     lasso_regression, y_pred_lasso = lasso_regression(X_train, y_train, X_test)
     lasso_regression_training_rmse = calculate_rmse(y_train, lasso_regression.predict(X_train))
     print(f'LASSO regression training RSME: {lasso_regression_training_rmse}')
@@ -340,7 +342,7 @@ if __name__ == "__main__":
     train_rmse.append(rf_regression_training_rmse)
     test_rmse.append(rf_regression_test_rmse)
 
-    # Bayesian ridge regression and RMSE calculation
+    # Bayesian ridge regression and RMSE calculation    
     bayesian_ridge_reg, y_pred_br = bayesian_ridge_regression(X_train, y_train, X_test)
     bayesian_regression_training_rmse = calculate_rmse(y_train, bayesian_ridge_reg.predict(X_train))
     print(f'Bayesian ridge regression training RMSE: {bayesian_regression_training_rmse}')
@@ -356,7 +358,7 @@ if __name__ == "__main__":
                                     'Bayesian ridge regression': bayesian_ridge_reg.predict(X_train)}
 
     regression_dictionary_test = {'Multiple linear regression': y_pred_reg,
-                                'LASSO regression': y_pred_lasso,
+                                LASSO regression': y_pred_lasso,
                                 'Ridge regression': y_pred_ridge,
                                 'Random forest regression': y_pred_rf,
                                 'Bayesian ridge regression': y_pred_br}
@@ -370,7 +372,7 @@ if __name__ == "__main__":
     random_sample_br = regression_dictionary_training['Bayesian ridge regression'][idx]
     random_y_train = y_train[idx]
 
-    # Plot actual values against predictions
+    # Plot actual values against predictions, and correlation   
     plot_gt_predictions(random_y_train, 
                     random_sample_mlr, 
                     'Multiple Linear Regression Training Set Comparison between Ground Truth and Predicted Values',
@@ -379,18 +381,18 @@ if __name__ == "__main__":
     plot_gt_predictions(random_y_train,
                     random_sample_lasso,
                     'LASSO Regression Training Set Comparison between Ground Truth and Predicted Values',
-                    "lasso_train.png")
+                    "lasso_train.png") 
 
     plot_gt_predictions(random_y_train,
                     random_sample_ridge,
                     'Ridge Regression Training Set Comparison between Ground Truth and Predicted Values',
-                    "ridge_train.png")
+                    "images\\ridge_train.png")
 
     plot_gt_predictions(random_y_train,
                     random_sample_rf,
                     'Random Forest Regression Training Set Comparison between Ground Truth and Predicted Values',
-                    "rf_train.png")
-    
+                    "images\\rf_train.png")
+      
     plot_gt_predictions(random_y_train,
                     random_sample_br,
                     'Bayesian Ridge Regression Training Set Comparison between Ground Truth and Predicted Values',
@@ -403,7 +405,7 @@ if __name__ == "__main__":
     random_sample_rf = regression_dictionary_test['Random forest regression'][idx]
     random_sample_br = regression_dictionary_test['Bayesian ridge regression'][idx]
     random_y_test = y_test[idx]
-
+     
     plot_gt_predictions(random_y_test, 
                     random_sample_mlr, 
                     'Multiple Linear Regression Test Set Comparison between Ground Truth and Predicted Values',
@@ -417,19 +419,19 @@ if __name__ == "__main__":
     plot_gt_predictions(random_y_test,
                     random_sample_ridge,
                     'Ridge Regression Test Set Comparison between Ground Truth and Predicted Values',
-                    "ridge_test.png")
+                    "images\\ridge_test.png")
 
     plot_gt_predictions(random_y_test,
                     random_sample_rf,
                     'Random Forest Regression Test Set Comparison between Ground Truth and Predicted Values',
-                    "rf_test.png")
-    
+                    "images\\rf_test.png")
+        
     plot_gt_predictions(random_y_test,
                     random_sample_br,
                     'Bayesian Ridge Regression Test Set Comparison between Ground Truth and Predicted Values',
-                    "br_test.png")
+                    "images\\br_test.png")
 
-    # Create visualization of RMSE results
+    # Create visualization of RMSE results    
     labels = ['Linear', 'LASSO', 'Ridge', 'Random Forest', 'Bayesian Ridge']
     x = np.arange(len(labels)) # Label locations
     width = 0.5 # Width of bars
