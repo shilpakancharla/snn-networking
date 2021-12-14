@@ -160,11 +160,25 @@ def plot_gt_predictions(random_gt, random_pred, title, savefig_title):
     plt.savefig(savefig_title)
     plt.close()
 
+"""
+    Apply principal components analysis on data passed in.
+
+    @param data: features passed in
+    @param n: number of principal components
+    @return data transformed by PCA
+    @return PCA to apply
+"""
 def create_pca(data, n):
     pca = PCA(n)
     X_transformed = pca.fit_transform(data)
     return X_transformed, pca
 
+"""
+    Tiers to place average packet loss values in.
+
+    @param average_packet_loss: target data of BNNC dataset
+    @return which tier the data point belongs to
+"""
 def bracket_selection(average_packet_loss):
   if average_packet_loss <= 0.1:
     return "Tier 1"
