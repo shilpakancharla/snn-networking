@@ -154,12 +154,14 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
                 test_loss_history.append(test_loss.item())
 
                 # Print train/test loss and accuracy
-                acc_value, test_acc_value = train_printer(epoch, iter_counter, counter, loss_history, 
-                                        data, targets, test_data, test_targets)
+                if counter % 50 == 0:
+                    acc_value, test_acc_value = train_printer(epoch, iter_counter, counter, loss_history, 
+                                            data, targets, test_data, test_targets)
+                    acc_history[iter_counter] = acc_value
+                    test_acc_history[iter_counter] = test_acc_value
+                
                 counter = counter + 1
                 iter_counter = iter_counter + 1
-                acc_history[iter_counter] = acc_value
-                test_acc_history[iter_counter] = test_acc_value
 
                 # Break loop if any of these loss criteria are met
                 if torch.allclose(test_loss, torch.tensor([0.0009])):
@@ -230,33 +232,22 @@ def plot_loss(loss_history, test_loss_history):
     Plot the accuracy history.
 
     @param acc: accuracy history of train data (dictionary)
+    @param test_acc: accuracy history of test data (dictionary)
 """
-def plot_accuracy(acc):
+def plot_accuracy(acc, test_acc):
     fig = plt.figure(facecolor = 'w', figsize = (20, 10))
     acc_list = acc.items()
     acc_list = sorted(acc_list)
     x_acc, y_acc = zip(*acc_list)
-    plt.plot(x_acc, y_acc)
-    plt.title("Accuracy Curves")
-    plt.xlabel("Iteration")
-    plt.ylabel("Accuracy %")
-    plt.savefig('synaptic_accuracies.png')  
-
-"""
-    Plot the test accuracy history.
-
-    @param test_acc: accuracy history of test data (dictionary)
-"""
-def plot_test_accuracy(test_acc):
-    fig = plt.figure(facecolor = 'w', figsize = (20, 10))
+    plt.plot(x_acc, y_acc, label = "Training")
     test_acc_list = test_acc.items()
     test_acc_list = sorted(test_acc_list)
     test_x_acc, test_y_acc = zip(*test_acc_list)
-    plt.plot(test_x_acc, test_y_acc)
-    plt.title("Test Accuracy Curve")
+    plt.plot(test_x_acc, test_y_acc, label = "Test")
+    plt.title("Accuracy Curves")
     plt.xlabel("Iteration")
     plt.ylabel("Accuracy %")
-    plt.savefig('test_synaptic_accuracies.png')
+    plt.savefig('accuracies.png') 
 
 # Driver code
 if __name__ == "__main__":
@@ -298,5 +289,4 @@ if __name__ == "__main__":
                                                                 device, optimizer)
 
     plot_loss(loss_history, test_loss_history)
-    plot_accuracy(acc)
-    plot_test_accuracy(test_acc)
+    plot_accuracy(acc, test_acc)

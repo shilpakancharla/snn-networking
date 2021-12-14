@@ -2,8 +2,10 @@ import os
 import math
 import numpy as np 
 import pandas as pd 
+import seaborn as sns
 import matplotlib.pyplot as plt
-from xgboost import XGBRegressor
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LassoCV, Ridge, BayesianRidge
 
@@ -12,8 +14,8 @@ from sklearn.linear_model import LinearRegression, LassoCV, Ridge, BayesianRidge
 
     @param csv_filepath: filepath of where all the .csv files are
     @param drop_columns: columns that will be dropped from the dataframe before further processing
-    @return dataframe of input data 
-    @return dataframe of output data 
+    @return dataframe of scaled input data 
+    @return dataframe of scaled output data 
 """
 def process_dataframe(csv_filepath, drop_columns):
     frames = []
@@ -32,9 +34,13 @@ def process_dataframe(csv_filepath, drop_columns):
             count = count + 1 # Keep track of number of files processed
             print("Processed " + file + ". Compeleted " + str(count) + " of " + str(len(file_list)) + " files.")
     
+    # Scale the input data using MinMaxScaler
+    scaler = MinMaxScaler()
+    df_scaled = pd.DataFrame(scaler.fit_transform(concat_df), columns = concat_df.columns)
+
     # Prepare for a tensor structure
-    input_ = concat_df.iloc[:, :-1] # Select every column except last column of dataframe
-    output_ = concat_df.iloc[:, -1:] # Select only last column of dataframe
+    input_ = df_scaled.iloc[:, :-1] # Select every column except last column of dataframe
+    output_ = df_scaled.iloc[:, -1:] # Select only last column of dataframe
     return input_, output_
 
 """
@@ -138,6 +144,39 @@ def bayesian_ridge_regression(X_train, y_train, X_test):
 def calculate_rmse(y_true, y_pred):
     return (math.sqrt(np.sum((y_true - y_pred)**2) / len(y_true)))
 
+def plot_gt_predictions(random_gt, random_pred, title, savefig_title):
+    fig = plt.figure(facecolor = 'w', figsize = (18, 10))
+    plt.style.use('ggplot')
+    plt.scatter(random_gt, random_pred, c = 'crimson')
+    plt.yscale('log')
+    plt.xscale('log')
+    p1 = max(max(random_pred), max(random_gt))
+    p2 = min(min(random_pred), min(random_gt))
+    plt.plot([p1, p2], [p1, p2], 'b-')
+    plt.title(title)
+    plt.xlabel('True Values', fontsize = 15)
+    plt.ylabel('Predictions', fontsize = 15)
+    plt.axis('equal')
+    plt.savefig(savefig_title)
+    plt.close()
+
+def create_pca(data, n):
+    pca = PCA(n)
+    X_transformed = pca.fit_transform(data)
+    return X_transformed, pca
+
+def bracket_selection(average_packet_loss):
+  if average_packet_loss <= 0.1:
+    return "Tier 1"
+  elif average_packet_loss <= 0.2:
+    return "Tier 2"
+  elif average_packet_loss <= 0.4:
+    return "Tier 3"
+  elif average_packet_loss <= 0.6:
+    return "Tier 4"
+  else:
+    return "Tier 5"
+
 # Driver code
 if __name__ == "__main__":
     TRAINING_PATH = 'training\\'
@@ -191,6 +230,59 @@ if __name__ == "__main__":
                     'Packet Size 1',
                     'Packet Size 2']]
     y_test = y_test['Avg Packet Loss']
+
+    y_tiers = y_train.apply(bracket_selection)
+
+    # Perform Principal Components Analysis for feature selection
+    # Decomposing the train set:
+    pca_train_results, pca_train = create_pca(X_train, 18)
+
+    #Decomposing the test set:
+    pca_test_results, pca_test = create_pca(X_test, 18)
+
+    # Plotting the first three PCA components and if it helps us distinguish the avg packet loss
+    first_comps = pca_train_results[:,0] #Taking the first PCA component 
+    second_comps = pca_train_results[:,1]
+
+    plt.figure(figsize=(16,10))
+    sns.scatterplot(
+        x=first_comps, 
+        y=second_comps,
+        hue=y_tiers,
+        palette=sns.color_palette("hls", 5),
+        legend="full",
+        alpha=0.3
+    )
+
+    plt.title("Average Packet Loss Explained by First Two PCA Elements")
+    plt.xlabel("PCA Component 1")
+    plt.ylabel("PCA Component 2")
+    plt.savefig('first_two_pca.png') # Training data
+
+    #Creating a table with the explained variance ratio
+    names_pcas = [f"PCA Component {i}" for i in range(1, 19, 1)]
+    scree = pd.DataFrame(list(zip(names_pcas, pca_train.explained_variance_ratio_)), 
+                    columns = ["Component", "Explained Variance Ratio"])
+    print(scree)
+
+    # Scree plot
+    indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    plt.scatter(indices, scree["Explained Variance Ratio"])
+    plt.xlabel('PCA Component', fontsize = 15)
+    plt.ylabel('Explained Variance Ratio', fontsize = 15)
+    plt.title('Scree Plot')
+    plt.savefig('scree_plot.png')
+
+    # Sorting the values of the first principal component by how large each one is
+    df = pd.DataFrame({'PCA': pca_train.components_[0], 'Variable Names': list(X_train.columns)})
+    df = df.sort_values('PCA', ascending = False)
+
+    # Sorting the absolute values of the first principal component by magnitude
+    df2 = pd.DataFrame(df)
+    df2['PCA'] = df2['PCA'].apply(np.absolute)
+    df2 = df2.sort_values('PCA', ascending = False)
+    print(df2['Variable Names'][0:11])
+    print(df.head())
 
     train_rmse = []
     test_rmse = []
@@ -255,55 +347,85 @@ if __name__ == "__main__":
                                 'Random forest regression': y_pred_rf,
                                 'Bayesian ridge regression': y_pred_br}
 
-    # Plot actual values against predictions
-    for key in regression_dictionary_training:
-        fig = plt.figure(facecolor = 'w', figsize = (20, 10))
-        plt.style.use('ggplot')
-        plt.scatter(y_train, regression_dictionary_training[key], c = 'crimson')
-        plt.yscale('log')
-        plt.xscale('log')
-        p1 = max(max(regression_dictionary_training[key]), max(y_train))
-        p2 = min(min(regression_dictionary_training[key]), min(y_train))
-        plt.plot([p1, p2], [p1, p2], 'b-')
-        plt.title(key + ' Training Set Comparison between Ground Truth and Predicted values')
-        plt.xlabel('True Values', fontsize=15)
-        plt.ylabel('Predictions', fontsize=15)
-        plt.axis('equal')
-        plt.savefig(key.replace(" ", "") + "_train.png")
-        plt.close()
+    # Take a random sample of points
+    idx = np.random.randint(0, y_train.shape[0], 500) 
+    random_sample_mlr = regression_dictionary_training['Multiple linear regression'][idx]
+    random_sample_lasso = regression_dictionary_training['LASSO regression'][idx]
+    random_sample_ridge = regression_dictionary_training['Ridge regression'][idx]
+    random_sample_rf = regression_dictionary_training['Random forest regression'][idx]
+    random_sample_br = regression_dictionary_training['Bayesian ridge regression'][idx]
+    random_y_train = y_train[idx]
 
-    for key in regression_dictionary_test:
-        fig = plt.figure(facecolor = 'w', figsize = (20, 10))
-        plt.style.use('ggplot')
-        plt.scatter(y_test, regression_dictionary_test[key], c = 'crimson')
-        plt.yscale('log')
-        plt.xscale('log')
-        p1 = max(max(regression_dictionary_test[key]), max(y_test))
-        p2 = min(min(regression_dictionary_test[key]), min(y_test))
-        plt.plot([p1, p2], [p1, p2], 'b-')
-        plt.title(key + ' Test Set Comparison between Ground Truth and Predicted values')
-        plt.xlabel('True Values', fontsize=15)
-        plt.ylabel('Predictions', fontsize=15)
-        plt.axis('equal')
-        plt.savefig(key.replace(" ", "") + "_test.png")
-        plt.close()
+    # Plot actual values against predictions
+    plot_gt_predictions(random_y_train, 
+                    random_sample_mlr, 
+                    'Multiple Linear Regression Training Set Comparison between Ground Truth and Predicted Values',
+                    "mlr_train.png")
+    
+    plot_gt_predictions(random_y_train,
+                    random_sample_lasso,
+                    'LASSO Regression Training Set Comparison between Ground Truth and Predicted Values',
+                    "lasso_train.png")
+
+    plot_gt_predictions(random_y_train,
+                    random_sample_ridge,
+                    'Ridge Regression Training Set Comparison between Ground Truth and Predicted Values',
+                    "ridge_train.png")
+
+    plot_gt_predictions(random_y_train,
+                    random_sample_rf,
+                    'Random Forest Regression Training Set Comparison between Ground Truth and Predicted Values',
+                    "rf_train.png")
+    
+    plot_gt_predictions(random_y_train,
+                    random_sample_br,
+                    'Bayesian Ridge Regression Training Set Comparison between Ground Truth and Predicted Values',
+                    "br_train.png")
+
+    idx = np.random.randint(0, y_test.shape[0], 500) 
+    random_sample_mlr = regression_dictionary_test['Multiple linear regression'][idx]
+    random_sample_lasso = regression_dictionary_test['LASSO regression'][idx]
+    random_sample_ridge = regression_dictionary_test['Ridge regression'][idx]
+    random_sample_rf = regression_dictionary_test['Random forest regression'][idx]
+    random_sample_br = regression_dictionary_test['Bayesian ridge regression'][idx]
+    random_y_test = y_test[idx]
+
+    plot_gt_predictions(random_y_test, 
+                    random_sample_mlr, 
+                    'Multiple Linear Regression Test Set Comparison between Ground Truth and Predicted Values',
+                    "mlr_test.png")
+    
+    plot_gt_predictions(random_y_test,
+                    random_sample_lasso,
+                    'LASSO Regression Test Set Comparison between Ground Truth and Predicted Values',
+                    "lasso_test.png")
+
+    plot_gt_predictions(random_y_test,
+                    random_sample_ridge,
+                    'Ridge Regression Test Set Comparison between Ground Truth and Predicted Values',
+                    "ridge_test.png")
+
+    plot_gt_predictions(random_y_test,
+                    random_sample_rf,
+                    'Random Forest Regression Test Set Comparison between Ground Truth and Predicted Values',
+                    "rf_test.png")
+    
+    plot_gt_predictions(random_y_test,
+                    random_sample_br,
+                    'Bayesian Ridge Regression Test Set Comparison between Ground Truth and Predicted Values',
+                    "br_test.png")
 
     # Create visualization of RMSE results
     labels = ['Linear', 'LASSO', 'Ridge', 'Random Forest', 'Bayesian Ridge']
-
     x = np.arange(len(labels)) # Label locations
     width = 0.5 # Width of bars
-
     fig, ax = plt.subplots(figsize = (15, 5))
     rect_1 = ax.bar(x + 0.00, train_rmse, width, color = 'r', label = "Training")
     rect_2 = ax.bar(x + 0.25, test_rmse, width, color = 'b', label = "Test")
-
     ax.set_ylabel('RMSE')
-    ax.set_title('Root Mean Squared Error for Barcelona Neural Networking Center Data')
+    ax.set_title('Root Mean Squared Error for Regression of BNNC Data')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
-
     ax.legend()
-
     plt.savefig('rmse_comparison.png')
     plt.close()

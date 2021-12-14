@@ -1,0 +1,69 @@
+Multiple linear regression training RMSE: 0.007160852139656826
+Multiple linear regression test RMSE: 0.009744081276361224
+
+LASSO regression training RSME: 0.009657871111453924
+LASSO regression test RMSE: 0.010452423313381266
+LASSO regression model coefficient:
+ [-7.85789179e-09  2.51766711e-06  0.00000000e+00  0.00000000e+00
+  0.00000000e+00  0.00000000e+00  0.00000000e+00  0.00000000e+00
+  0.00000000e+00  0.00000000e+00  0.00000000e+00  0.00000000e+00
+  0.00000000e+00  0.00000000e+00  1.55006638e-06  1.55901886e-07
+  0.00000000e+00  0.00000000e+00  0.00000000e+00  0.00000000e+00
+  0.00000000e+00]
+The shrinkage coefficient hyperparameter chosen by CV in LASSO regression: 0.05384044023131529
+
+Ridge regression training RSME: 0.007160956478638384
+Ridge regression test RMSE: 0.009743910680615874
+Ridge regression model coefficient:
+ [ 4.41088226e-09  1.19320447e-06  2.02435112e-03  2.43651868e-03
+ -4.20180973e-03  1.63561370e-01 -9.11106617e-02 -5.44675515e-04
+  3.68196444e-02  7.71894083e-02 -5.10088732e-03  6.67484552e-02
+ -1.77673059e-03 -8.10031252e-02 -1.37449090e-07  1.19997668e-06
+ -5.89675117e-05  0.00000000e+00  0.00000000e+00  0.00000000e+00
+  0.00000000e+00]
+
+Random forest regression training RMSE: 0.005047830951933399
+Random forest regression test RMSE: 0.00795368554278374
+
+Bayesian ridge regression training RMSE: 0.007160890047232691
+Bayesian ridge regression test RMSE: 0.009744130047547586
+
+           Component  Explained Variance Ratio
+0    PCA Component 1              7.104509e-01
+1    PCA Component 2              1.465660e-01
+2    PCA Component 3              9.780483e-02
+3    PCA Component 4              2.509995e-02
+4    PCA Component 5              1.215436e-02
+5    PCA Component 6              3.622957e-03
+6    PCA Component 7              2.921385e-03
+7    PCA Component 8              1.034286e-03
+8    PCA Component 9              2.036538e-04
+9   PCA Component 10              6.364312e-05
+10  PCA Component 11              4.365198e-05
+11  PCA Component 12              1.796989e-05
+12  PCA Component 13              1.157532e-05
+13  PCA Component 14              3.055496e-06
+14  PCA Component 15              1.534638e-06
+15  PCA Component 16              2.161985e-07
+16  PCA Component 17              4.838119e-13
+17  PCA Component 18              0.000000e+00
+
+14           Max Avg Lambda
+15        Equivalent Lambda
+16    Average Packet Lambda
+4       Packets Transmitted
+3         Average Bandwidth
+0             Global Packet
+1               Global Loss
+2              Global Delay
+7        Neperian Logarithm
+12            Percentile 90
+5           Packets Dropped
+
+Name: Variable Names, dtype: object
+         PCA         Variable Names
+14  0.484401         Max Avg Lambda
+15  0.437263      Equivalent Lambda
+16  0.437263  Average Packet Lambda
+4   0.431077    Packets Transmitted
+3   0.424707      Average Bandwidth
