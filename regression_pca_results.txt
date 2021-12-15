@@ -1,3 +1,5 @@
+Without feature engineering:
+
 Multiple linear regression training RMSE: 0.007160852139656826
 Multiple linear regression test RMSE: 0.009744081276361224
 
@@ -27,6 +29,27 @@ Random forest regression test RMSE: 0.00795368554278374
 
 Bayesian ridge regression training RMSE: 0.007160890047232691
 Bayesian ridge regression test RMSE: 0.009744130047547586
+
+With feature engineering:
+
+Multiple linear regression training RMSE: 0.0147422098920144
+Multiple linear regression test RMSE: 0.020958249174613475
+LASSO regression training RSME: 0.014749746801308534
+LASSO regression test RMSE: 0.02088905733884095
+LASSO regression model coefficient:
+ [-0.00000000e+00 -3.70997188e-03 -5.96165899e-09 -2.22649445e-05
+ -0.00000000e+00  3.50276551e-03  5.15645612e-03 -3.21654591e-04
+ -1.23498638e-02  2.56409067e-01  4.12570627e-01]
+The shrinkage coefficient hyperparameter chosen by CV in LASSO regression: 5.518936019990177e-06
+Ridge regression training RSME: 0.01474225877276806
+Ridge regression test RMSE: 0.020955625284622338
+Ridge regression model coefficient:
+ [ 0.00066017  0.00220507  0.00215794 -0.01238658  0.00392913  0.00194403
+  0.00635567 -0.00532003 -0.01600068  0.27825919  0.42135113]
+Random forest regression training RMSE: 0.010491005186030623
+Random forest regression test RMSE: 0.021508084125150543
+Bayesian ridge regression training RMSE: 0.01474225472866885
+Bayesian ridge regression test RMSE: 0.020958266675941813
 
            Component  Explained Variance Ratio
 0    PCA Component 1              7.104509e-01
