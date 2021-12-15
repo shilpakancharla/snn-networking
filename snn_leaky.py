@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 """
     Author: Shilpa Kancharla
-    Last Modified: December 13, 2021
+    Last Modified: December 15, 2021
 """
 
 class SpikingLeakyNeuralNetwork(nn.Module):
@@ -307,7 +307,7 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
             # Forward pass
             net.train()
             try:
-                spk_rec, mem_rec = net(data.view(batch_size, 21))
+                spk_rec, mem_rec = net(data.view(batch_size, 11))
             except RuntimeError:
                 print("Hit RuntimeError.")
                 return loss_history, test_loss_history, acc_history, test_acc_history # Return values to this point
@@ -334,7 +334,7 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
 
                 # Test set forward pass
                 try: 
-                    test_spk, test_mem = net(test_data.view(batch_size, 21))
+                    test_spk, test_mem = net(test_data.view(batch_size, 11))
                 except RuntimeError:
                     print("Hit RuntimeError.")
                     return loss_history, test_loss_history, acc_history, test_acc_history
@@ -378,7 +378,7 @@ def plot_loss(loss_history, test_loss_history):
     plt.legend(["Train Loss", "Test Loss"])
     plt.xlabel("Iteration")
     plt.ylabel("Loss")
-    plt.savefig('loss_histories.png') 
+    plt.savefig('fe_loss_histories.png') 
 
 """
     Plot the accuracy history.
@@ -399,7 +399,7 @@ def plot_accuracy(acc, test_acc):
     plt.title("Accuracy Curves")
     plt.xlabel("Iteration")
     plt.ylabel("Accuracy %")
-    plt.savefig('accuracies.png')  
+    plt.savefig('fe_accuracies.png')  
 
 # Driver code
 if __name__ == "__main__":
@@ -407,8 +407,12 @@ if __name__ == "__main__":
     TEST_PATH = 'test\\'
     DROP_COLUMNS = ['Unnamed: 0', 'Time Distribution', 'Size Distribution', 'Link Exists', 'Avg Utilization', 'Avg Packet Length', 
                 'Avg Utilization First', 'Avg Packet Loss Rate', 'Avg Port Occupancy', 'Max Queue Occupancy', 'Avg Packet Length First']
-    #input_train, output_train = process_dataframe(TRAINING_PATH, DROP_COLUMNS)
-    #input_test, output_test = process_dataframe(TEST_PATH, DROP_COLUMNS)
+    DROP_COLUMNS_FE = ['Unnamed: 0', 'Average Per-Packet Delay', 'Percentile 10', 'Percentile 20', 'Percentile 50', 
+            'Percentile 80', 'Jitter', 'Exponential Max Factor', 'Average Packet Size', 'Packet Size 1', 'Packet Size 2', 
+            'Time Distribution', 'Size Distribution', 'Link Exists', 'Avg Utilization', 'Avg Packet Length', 
+            'Avg Utilization First', 'Avg Packet Loss Rate', 'Avg Port Occupancy', 'Max Queue Occupancy', 'Avg Packet Length First']
+    #input_train, output_train = process_dataframe(TRAINING_PATH, DROP_COLUMNS_FE)
+    #input_test, output_test = process_dataframe(TEST_PATH, DROP_COLUMNS_FE)
     
     # Check the shape of features and targets for train and test sets
     #print(input_train.shape)
@@ -417,16 +421,16 @@ if __name__ == "__main__":
     #print(output_test.shape)
     
     # Save these numpy arrays to load in again
-    #np.save("npy_files\\input_train.npy", input_train)
-    #np.save("npy_files\\output_train.npy", output_train)
-    #np.save("npy_files\\input_test.npy", input_test)
-    #np.save("npy_files\\output_test.npy", output_test)
+    #np.save("npy_files\\input_train_fe.npy", input_train)
+    #np.save("npy_files\\output_train_fe.npy", output_train)
+    #np.save("npy_files\\input_test_fe.npy", input_test)
+    #np.save("npy_files\\output_test_fe.npy", output_test)
 
     # Load .npy files once you save them
-    INPUT_TRAIN = 'npy_files\\input_train.npy'
-    OUTPUT_TRAIN = 'npy_files\\output_train.npy'
-    INPUT_TEST = 'npy_files\\input_test.npy'
-    OUTPUT_TEST = 'npy_files\\output_test.npy'
+    INPUT_TRAIN = 'npy_files\\input_train_fe.npy'
+    OUTPUT_TRAIN = 'npy_files\\output_train_fe.npy'
+    INPUT_TEST = 'npy_files\\input_test_fe.npy'
+    OUTPUT_TEST = 'npy_files\\output_test_fe.npy'
     features_train_tensor = np.load(INPUT_TRAIN)
     target_train_tensor = np.load(OUTPUT_TRAIN)
     
@@ -459,7 +463,7 @@ if __name__ == "__main__":
 
     dtype = torch.float
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    net = SpikingLeakyNeuralNetwork(21, 1000, 1, 0.95).to(device) # Load network onto CUDA if available
+    net = SpikingLeakyNeuralNetwork(11, 1000, 1, 0.95).to(device) # Load network onto CUDA if available
 
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))

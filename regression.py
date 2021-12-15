@@ -197,115 +197,146 @@ if __name__ == "__main__":
     TEST_PATH = 'test\\'
     DROP_COLUMNS = ['Unnamed: 0', 'Time Distribution', 'Size Distribution', 'Link Exists', 'Avg Utilization', 'Avg Packet Length', 
                 'Avg Utilization First', 'Avg Packet Loss Rate', 'Avg Port Occupancy', 'Max Queue Occupancy', 'Avg Packet Length First']
-    X_train, y_train = process_dataframe(TRAINING_PATH, DROP_COLUMNS)
-    X_test, y_test = process_dataframe(TEST_PATH, DROP_COLUMNS)
+    DROP_COLUMNS_FE = ['Unnamed: 0', 'Average Per-Packet Delay', 'Percentile 10', 'Percentile 20', 'Percentile 50', 
+        'Percentile 80', 'Jitter', 'Exponential Max Factor', 'Average Packet Size', 'Packet Size 1', 'Packet Size 2', 
+        'Time Distribution', 'Size Distribution', 'Link Exists', 'Avg Utilization', 'Avg Packet Length', 
+        'Avg Utilization First', 'Avg Packet Loss Rate', 'Avg Port Occupancy', 'Max Queue Occupancy', 'Avg Packet Length First']
+    X_train_fe, y_train = process_dataframe(TRAINING_PATH, DROP_COLUMNS_FE)
+    X_test_fe, y_test = process_dataframe(TEST_PATH, DROP_COLUMNS_FE)
 
-    X_train = X_train[['Global Packet',
-                    'Global Loss',
-                    'Global Delay',
-                    'Average Bandwidth',
-                    'Packets Transmitted',
-                    'Packets Dropped',
-                    'Average Per-Packet Delay',
-                    'Neperian Logarithm',
-                    'Percentile 10',
-                    'Percentile 20',
-                    'Percentile 50',
-                    'Percentile 80',
-                    'Percentile 90',
-                    'Jitter',
-                    'Max Avg Lambda',
-                    'Equivalent Lambda',
-                    'Average Packet Lambda',
-                    'Exponential Max Factor',
-                    'Average Packet Size',
-                    'Packet Size 1',
-                    'Packet Size 2']]
+    # X_train = X_train[['Global Packet',
+    #                 'Global Loss',
+    #                 'Global Delay',
+    #                 'Average Bandwidth',
+    #                 'Packets Transmitted',
+    #                 'Packets Dropped',
+    #                 'Average Per-Packet Delay',
+    #                 'Neperian Logarithm',
+    #                 'Percentile 10',
+    #                 'Percentile 20',
+    #                 'Percentile 50',
+    #                 'Percentile 80',
+    #                 'Percentile 90',
+    #                 'Jitter',
+    #                 'Max Avg Lambda',
+    #                 'Equivalent Lambda',
+    #                 'Average Packet Lambda',
+    #                 'Exponential Max Factor',
+    #                 'Average Packet Size',
+    #                 'Packet Size 1',
+    #                 'Packet Size 2']]
+
+    X_train_fe = X_train_fe[['Max Avg Lambda',
+                        'Equivalent Lambda',
+                        'Average Packet Lambda',
+                        'Packets Transmitted',
+                        'Average Bandwidth',
+                        'Global Packet',
+                        'Global Loss',
+                        'Global Delay',
+                        'Neperian Logarithm',
+                        'Percentile 90',
+                        'Packets Dropped']]
+
     y_train = y_train['Avg Packet Loss']
-    X_test = X_test[['Global Packet',
-                    'Global Loss',
-                    'Global Delay',
-                    'Average Bandwidth',
-                    'Packets Transmitted',
-                    'Packets Dropped',
-                    'Average Per-Packet Delay',
-                    'Neperian Logarithm',
-                    'Percentile 10',
-                    'Percentile 20',
-                    'Percentile 50',
-                    'Percentile 80',
-                    'Percentile 90',
-                    'Jitter',
-                    'Max Avg Lambda',
+
+    # X_test = X_test[['Global Packet',
+    #                 'Global Loss',
+    #                 'Global Delay',
+    #                 'Average Bandwidth',
+    #                 'Packets Transmitted',
+    #                 'Packets Dropped',
+    #                 'Average Per-Packet Delay',
+    #                 'Neperian Logarithm',
+    #                 'Percentile 10',
+    #                 'Percentile 20',
+    #                 'Percentile 50',
+    #                 'Percentile 80',
+    #                 'Percentile 90',
+    #                 'Jitter',
+    #                 'Max Avg Lambda',
+    #                 'Equivalent Lambda',
+    #                 'Average Packet Lambda',
+    #                 'Exponential Max Factor',
+    #                 'Average Packet Size',
+    #                 'Packet Size 1',
+    #                 'Packet Size 2']]
+
+    X_test_fe = X_test_fe[['Max Avg Lambda',
                     'Equivalent Lambda',
                     'Average Packet Lambda',
-                    'Exponential Max Factor',
-                    'Average Packet Size',
-                    'Packet Size 1',
-                    'Packet Size 2']]
+                    'Packets Transmitted',
+                    'Average Bandwidth',
+                    'Global Packet',
+                    'Global Loss',
+                    'Global Delay',
+                    'Neperian Logarithm',
+                    'Percentile 90',
+                    'Packets Dropped']]
+
     y_test = y_test['Avg Packet Loss']
     
     y_tiers = y_train.apply(bracket_selection)
 
     # Perform Principal Components Analysis for feature selection
     # Decomposing the train set:
-    pca_train_results, pca_train = create_pca(X_train, 18)
+    #pca_train_results, pca_train = create_pca(X_train, 18)
 
     #Decomposing the test set:
-    pca_test_results, pca_test = create_pca(X_test, 18)
+    #pca_test_results, pca_test = create_pca(X_test, 18)
 
     # Plotting the first three PCA components and if it helps us distinguish the avg packet loss
-    first_comps = pca_train_results[:,0] #Taking the first PCA component 
-    second_comps = pca_train_results[:,1]
+    #first_comps = pca_train_results[:,0] #Taking the first PCA component 
+    #second_comps = pca_train_results[:,1]
 
-    plt.figure(figsize=(16,10))
-    sns.scatterplot(
-        x=first_comps, 
-        y=second_comps,
-        hue=y_tiers,
-        palette=sns.color_palette("hls", 5),
-        legend="full",
-        alpha=0.3
-    )
+    # plt.figure(figsize=(16,10))
+    # sns.scatterplot(
+    #     x=first_comps, 
+    #     y=second_comps,
+    #     hue=y_tiers,
+    #     palette=sns.color_palette("hls", 5),
+    #     legend="full",
+    #     alpha=0.3
+    # )
 
-    plt.title("Average Packet Loss Explained by First Two PCA Elements")
-    plt.xlabel("PCA Component 1")
-    plt.ylabel("PCA Component 2")
-    plt.savefig('first_two_pca.png') # Training data
-    plt.close()
+    # plt.title("Average Packet Loss Explained by First Two PCA Elements")
+    # plt.xlabel("PCA Component 1")
+    # plt.ylabel("PCA Component 2")
+    # plt.savefig('first_two_pca.png') # Training data
+    # plt.close()
 
-    #Creating a table with the explained variance ratio
-    names_pcas = [f"PCA Component {i}" for i in range(1, 19, 1)]
-    scree = pd.DataFrame(list(zip(names_pcas, pca_train.explained_variance_ratio_)), 
-                    columns = ["Component", "Explained Variance Ratio"])
-    print(scree)
+    # #Creating a table with the explained variance ratio
+    # names_pcas = [f"PCA Component {i}" for i in range(1, 19, 1)]
+    # scree = pd.DataFrame(list(zip(names_pcas, pca_train.explained_variance_ratio_)), 
+    #                 columns = ["Component", "Explained Variance Ratio"])
+    # print(scree)
 
-    # Scree plot
-    indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
-    plt.scatter(indices, scree["Explained Variance Ratio"])
-    plt.xlabel('PCA Component', fontsize = 15)
-    plt.ylabel('Explained Variance Ratio', fontsize = 15)
-    plt.title('Scree Plot')
-    plt.savefig('scree_plot.png')
-    plt.close()
+    # # Scree plot
+    # indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    # plt.scatter(indices, scree["Explained Variance Ratio"])
+    # plt.xlabel('PCA Component', fontsize = 15)
+    # plt.ylabel('Explained Variance Ratio', fontsize = 15)
+    # plt.title('Scree Plot')
+    # plt.savefig('scree_plot.png')
+    # plt.close()
 
-    # Sorting the values of the first principal component by how large each one is
-    df = pd.DataFrame({'PCA': pca_train.components_[0], 'Variable Names': list(X_train.columns)})
-    df = df.sort_values('PCA', ascending = False)
+    # # Sorting the values of the first principal component by how large each one is
+    # df = pd.DataFrame({'PCA': pca_train.components_[0], 'Variable Names': list(X_train.columns)})
+    # df = df.sort_values('PCA', ascending = False)
 
-    # Sorting the absolute values of the first principal component by magnitude
-    df2 = pd.DataFrame(df)
-    df2['PCA'] = df2['PCA'].apply(np.absolute)
-    df2 = df2.sort_values('PCA', ascending = False)
-    print(df2['Variable Names'][0:11])
-    print(df.head())
+    # # Sorting the absolute values of the first principal component by magnitude
+    # df2 = pd.DataFrame(df)
+    # df2['PCA'] = df2['PCA'].apply(np.absolute)
+    # df2 = df2.sort_values('PCA', ascending = False)
+    # print(df2['Variable Names'][0:11])
+    # print(df.head())
 
     train_rmse = []
     test_rmse = []
  
     # Multiple linear regression and RMSE calculation    
-    linear_regression, y_pred_reg = multiple_linear_regression(X_train, y_train, X_test)
-    linear_regression_training_rmse = calculate_rmse(y_train, linear_regression.predict(X_train))
+    linear_regression, y_pred_reg = multiple_linear_regression(X_train_fe, y_train, X_test_fe)
+    linear_regression_training_rmse = calculate_rmse(y_train, linear_regression.predict(X_train_fe))
     print(f'Multiple linear regression training RMSE: {linear_regression_training_rmse}')
     linear_regression_test_rmse = calculate_rmse(y_test, y_pred_reg)
     print(f'Multiple linear regression test RMSE: {linear_regression_test_rmse}')
@@ -313,8 +344,8 @@ if __name__ == "__main__":
     test_rmse.append(linear_regression_test_rmse)
 
     # LASSO regression, RMSE calculations, and attribute selection   
-    lasso_regression, y_pred_lasso = lasso_regression(X_train, y_train, X_test)
-    lasso_regression_training_rmse = calculate_rmse(y_train, lasso_regression.predict(X_train))
+    lasso_regression, y_pred_lasso = lasso_regression(X_train_fe, y_train, X_test_fe)
+    lasso_regression_training_rmse = calculate_rmse(y_train, lasso_regression.predict(X_train_fe))
     print(f'LASSO regression training RSME: {lasso_regression_training_rmse}')
     lasso_regression_test_rmse = calculate_rmse(y_test, y_pred_lasso)
     print(f'LASSO regression test RMSE: {lasso_regression_test_rmse}')
@@ -324,8 +355,8 @@ if __name__ == "__main__":
     test_rmse.append(lasso_regression_test_rmse)
 
     # Ridge regression, RMSE calcuations, and attribute selection
-    ridge_regression, y_pred_ridge = ridge_regression(X_train, y_train, X_test)
-    ridge_regression_training_rmse = calculate_rmse(y_train, ridge_regression.predict(X_train))
+    ridge_regression, y_pred_ridge = ridge_regression(X_train_fe, y_train, X_test_fe)
+    ridge_regression_training_rmse = calculate_rmse(y_train, ridge_regression.predict(X_train_fe))
     print(f'Ridge regression training RSME: {ridge_regression_training_rmse}')
     ridge_regression_test_rmse = calculate_rmse(y_test, y_pred_ridge)
     print(f'Ridge regression test RMSE: {ridge_regression_test_rmse}')
@@ -334,8 +365,8 @@ if __name__ == "__main__":
     test_rmse.append(ridge_regression_test_rmse)
 
     # Random forest regression and RMSE calculation
-    rf_regression, y_pred_rf = random_forest_regression(X_train, y_train, X_test, 0, 5)
-    rf_regression_training_rmse = calculate_rmse(y_train, rf_regression.predict(X_train))
+    rf_regression, y_pred_rf = random_forest_regression(X_train_fe, y_train, X_test_fe, 0, 5)
+    rf_regression_training_rmse = calculate_rmse(y_train, rf_regression.predict(X_train_fe))
     print(f'Random forest regression training RMSE: {rf_regression_training_rmse}')
     rf_regression_test_rmse = calculate_rmse(y_test, y_pred_rf)
     print(f'Random forest regression test RMSE: {rf_regression_test_rmse}')
@@ -343,22 +374,22 @@ if __name__ == "__main__":
     test_rmse.append(rf_regression_test_rmse)
 
     # Bayesian ridge regression and RMSE calculation    
-    bayesian_ridge_reg, y_pred_br = bayesian_ridge_regression(X_train, y_train, X_test)
-    bayesian_regression_training_rmse = calculate_rmse(y_train, bayesian_ridge_reg.predict(X_train))
+    bayesian_ridge_reg, y_pred_br = bayesian_ridge_regression(X_train_fe, y_train, X_test_fe)
+    bayesian_regression_training_rmse = calculate_rmse(y_train, bayesian_ridge_reg.predict(X_train_fe))
     print(f'Bayesian ridge regression training RMSE: {bayesian_regression_training_rmse}')
     bayesian_regression_test_rmse = calculate_rmse(y_test, y_pred_br)
     print(f'Bayesian ridge regression test RMSE: {bayesian_regression_test_rmse}')
     train_rmse.append(bayesian_regression_training_rmse)
     test_rmse.append(bayesian_regression_test_rmse)
 
-    regression_dictionary_training = {'Multiple linear regression': linear_regression.predict(X_train),
-                                    'LASSO regression': lasso_regression.predict(X_train),
-                                    'Ridge regression': ridge_regression.predict(X_train),
-                                    'Random forest regression': rf_regression.predict(X_train),
-                                    'Bayesian ridge regression': bayesian_ridge_reg.predict(X_train)}
+    regression_dictionary_training = {'Multiple linear regression': linear_regression.predict(X_train_fe),
+                                    'LASSO regression': lasso_regression.predict(X_train_fe),
+                                    'Ridge regression': ridge_regression.predict(X_train_fe),
+                                    'Random forest regression': rf_regression.predict(X_train_fe),
+                                    'Bayesian ridge regression': bayesian_ridge_reg.predict(X_train_fe)}
 
     regression_dictionary_test = {'Multiple linear regression': y_pred_reg,
-                                LASSO regression': y_pred_lasso,
+                                'LASSO regression': y_pred_lasso,
                                 'Ridge regression': y_pred_ridge,
                                 'Random forest regression': y_pred_rf,
                                 'Bayesian ridge regression': y_pred_br}
@@ -376,27 +407,27 @@ if __name__ == "__main__":
     plot_gt_predictions(random_y_train, 
                     random_sample_mlr, 
                     'Multiple Linear Regression Training Set Comparison between Ground Truth and Predicted Values',
-                    "mlr_train.png")
+                    "images\\mlr_train_fe.png")
     
     plot_gt_predictions(random_y_train,
                     random_sample_lasso,
                     'LASSO Regression Training Set Comparison between Ground Truth and Predicted Values',
-                    "lasso_train.png") 
+                    "images\\lasso_train_fe.png") 
 
     plot_gt_predictions(random_y_train,
                     random_sample_ridge,
                     'Ridge Regression Training Set Comparison between Ground Truth and Predicted Values',
-                    "images\\ridge_train.png")
+                    "images\\ridge_train_fe.png")
 
     plot_gt_predictions(random_y_train,
                     random_sample_rf,
                     'Random Forest Regression Training Set Comparison between Ground Truth and Predicted Values',
-                    "images\\rf_train.png")
+                    "images\\rf_train_fe.png")
       
     plot_gt_predictions(random_y_train,
                     random_sample_br,
                     'Bayesian Ridge Regression Training Set Comparison between Ground Truth and Predicted Values',
-                    "br_train.png")
+                    "images\\br_train_fe.png")
 
     idx = np.random.randint(0, y_test.shape[0], 500) 
     random_sample_mlr = regression_dictionary_test['Multiple linear regression'][idx]
@@ -409,27 +440,27 @@ if __name__ == "__main__":
     plot_gt_predictions(random_y_test, 
                     random_sample_mlr, 
                     'Multiple Linear Regression Test Set Comparison between Ground Truth and Predicted Values',
-                    "mlr_test.png")
+                    "images\\mlr_test_fe.png")
     
     plot_gt_predictions(random_y_test,
                     random_sample_lasso,
                     'LASSO Regression Test Set Comparison between Ground Truth and Predicted Values',
-                    "lasso_test.png")
+                    "images\\lasso_test_fe.png")
 
     plot_gt_predictions(random_y_test,
                     random_sample_ridge,
                     'Ridge Regression Test Set Comparison between Ground Truth and Predicted Values',
-                    "images\\ridge_test.png")
+                    "images\\ridge_test_fe.png")
 
     plot_gt_predictions(random_y_test,
                     random_sample_rf,
                     'Random Forest Regression Test Set Comparison between Ground Truth and Predicted Values',
-                    "images\\rf_test.png")
+                    "images\\rf_test_fe.png")
         
     plot_gt_predictions(random_y_test,
                     random_sample_br,
                     'Bayesian Ridge Regression Test Set Comparison between Ground Truth and Predicted Values',
-                    "images\\br_test.png")
+                    "images\\br_test_fe.png")
 
     # Create visualization of RMSE results    
     labels = ['Linear', 'LASSO', 'Ridge', 'Random Forest', 'Bayesian Ridge']
@@ -443,5 +474,5 @@ if __name__ == "__main__":
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.legend()
-    plt.savefig('rmse_comparison.png')
+    plt.savefig('rmse_comparison_fe.png')
     plt.close()

@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 """
     Author: Shilpa Kancharla
-    Last Modified: December 11, 2021
+    Last Modified: December 15, 2021
 """
 
 class SpikingSynapticNeuralNetwork(nn.Module):
@@ -115,7 +115,7 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
             # Forward pass
             net.train()
             try:
-                spk_rec, syn_rec, mem_rec = net(data.view(batch_size, 21))
+                spk_rec, syn_rec, mem_rec = net(data.view(batch_size, 11))
             except RuntimeError:
                 print("Hit RuntimeError.")
                 return loss_history, test_loss_history, acc_history, test_acc_history # Return values to this point
@@ -142,7 +142,7 @@ def training_loop(net, train_loader, test_loader, dtype, device, optimizer):
 
                 # Test set forward pass
                 try: 
-                    test_spk, test_syn, test_mem = net(test_data.view(batch_size, 21))
+                    test_spk, test_syn, test_mem = net(test_data.view(batch_size, 11))
                 except RuntimeError:
                     print("Hit RuntimeError.")
                     return loss_history, test_loss_history, acc_history, test_acc_history
@@ -252,10 +252,10 @@ def plot_accuracy(acc, test_acc):
 # Driver code
 if __name__ == "__main__":
     # Load .npy files once you save them
-    INPUT_TRAIN = 'npy_files\\input_train.npy'
-    OUTPUT_TRAIN = 'npy_files\\output_train.npy'
-    INPUT_TEST = 'npy_files\\input_test.npy'
-    OUTPUT_TEST = 'npy_files\\output_test.npy'
+    INPUT_TRAIN = 'npy_files\\input_train_fe.npy'
+    OUTPUT_TRAIN = 'npy_files\\output_train_fe.npy'
+    INPUT_TEST = 'npy_files\\input_test_fe.npy'
+    OUTPUT_TEST = 'npy_files\\output_test_fe.npy'
     features_train_tensor = np.load(INPUT_TRAIN)
     target_train_tensor = np.load(OUTPUT_TRAIN)
     features_test_tensor = np.load(INPUT_TEST)
@@ -279,7 +279,7 @@ if __name__ == "__main__":
 
     dtype = torch.float
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    net = SpikingSynapticNeuralNetwork(21, 1000, 1, 0.9, 0.8).to(device) # Load network onto CUDA if available
+    net = SpikingSynapticNeuralNetwork(11, 1000, 1, 0.9, 0.8).to(device) # Load network onto CUDA if available
 
     loss_function = nn.MSELoss()
     optimizer = torch.optim.Adam(net.parameters(), lr = 5e-4, betas = (0.9, 0.999))
