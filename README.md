@@ -124,12 +124,14 @@ The link usage are organized as a list structure.
 
 ## Data Processing for Spiking Neural Network
 
-Further data processing is applied to get the data ready to run through a spiking neural network. For this segment, Amazon Web Services was particularly useful. All the preprocessed data so far was uploaded to an S3 bucket. `snn_data_processing.py` provides the APIs used alongside a description of each function. These functions were run on SageMaker. While the functions and the main driver code are provided here, it would be best to run this in SageMaker on the account that has the corresponding S3 bucket. 
-
-The main target of focus is the average packet loss in this experiment. Each average packet loss value was placed in a bin. The average packet loss values ranges between 0 and 1, inclusive. One hundred bins were created. The following histograms display the distribution of the training and test target values. 
-
-![Distribution of average packet loss values for the training data.](images/Train_AvgPacketLoss.png)
-![Distribution of average packet loss values for the test data.](images/Test_AvgPacketLoss.png)
+Further data processing is applied to get the data ready to run through a spiking neural network. For this segment, Amazon Web Services was particularly useful. All the preprocessed data so far was uploaded to an S3 bucket. `snn_data_processing.py` provides the APIs used alongside a description of each function. These functions were run on SageMaker. While the functions and the main driver code are provided here, it would be best to run this in SageMaker on the account that has the corresponding S3 bucket. The main target of focus is the average packet loss in this experiment. Feature engineering techniques such as PCA, LASSO regression, and ridge regression were applied to determine which features may be most relevant. These results are recorded in `regression_pca_results.txt`.
 
 ## Running the Spiking Neural Network
-The code used to build the spiking neural network in `snn.py` is heavily inspired from https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_5.html. Various functions to create the bins for the classification, plot the loss and accuracy, and process the dataframe were created. Additionally, the values from the dataframes were converted into tensors which can be loaded on to PyTorch's `DataLoader`
+The code used to build the spiking neural network in `snn_leaky.py` and `snn_synaptic.py`. Both of these models represent the leaky SNN model and synaptic SNN model, and are heavily inspired from https://snntorch.readthedocs.io/en/latest/tutorials/tutorial_5.html. There is a `SpikingLeakyNeuralNetwork` and `SpikingSynapticNeuralNetwork` object, that accepts the following parameters:
+
+* number of input nodes
+* number of nodes in hidden layer
+* number of output nodes
+* beta decay rate
+
+The `SpikingSynapticNeuralNetwork` also needs an alpha decay rate when instantiating the object. Depending on whether the neural network is being run with the feature engineered results or not, the columns dropped should be selected accordingly. 
